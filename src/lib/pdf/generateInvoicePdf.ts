@@ -93,7 +93,7 @@ export async function createInvoicePdfDoc(invoice: Invoice): Promise<jsPDF> {
   // Left: INVOICE Heading + Invoice Date directly below
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(22);
-  doc.setTextColor(217, 119, 6); // Amber gold #d97706
+  doc.setTextColor(0, 0, 0); // Solid Black
   doc.text('INVOICE', headerX, currentY);
 
   doc.setFontSize(9);
