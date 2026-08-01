@@ -20,7 +20,8 @@ export default async function UsersManagementPage() {
     .eq('id', user.id)
     .single();
 
-  if (!profileData || profileData.role !== 'Owner') {
+  const role = profileData?.role?.trim().toLowerCase();
+  if (!profileData || role !== 'owner') {
     redirect('/dashboard');
   }
 

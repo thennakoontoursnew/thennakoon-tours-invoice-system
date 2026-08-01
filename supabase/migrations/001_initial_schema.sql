@@ -239,18 +239,18 @@ ALTER TABLE public.invoice_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.qr_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invoice_activity_logs ENABLE ROW LEVEL SECURITY;
 
--- Helper function to check role safely
+-- -- Helper function to check role safely (normalized case-insensitive)
 CREATE OR REPLACE FUNCTION public.get_user_role()
 RETURNS TEXT AS $$
-    SELECT role FROM public.profiles WHERE id = auth.uid();
+    SELECT LOWER(TRIM(role)) FROM public.profiles WHERE id = auth.uid();
 $$ LANGUAGE sql STABLE SECURITY DEFINER;
 
 -- Profiles Policies:
 CREATE POLICY "Read profiles" ON public.profiles FOR SELECT TO authenticated USING (true);
 
 CREATE POLICY "Owner manage profiles" ON public.profiles FOR ALL TO authenticated
-USING (public.get_user_role() = 'Owner')
-WITH CHECK (public.get_user_role() = 'Owner');
+USING (public.get_user_role() = 'owner')
+WITH CHECK (public.get_user_role() = 'owner');
 
 CREATE POLICY "User update own profile" ON public.profiles FOR UPDATE TO authenticated
 USING (id = auth.uid())
@@ -258,20 +258,19 @@ WITH CHECK (id = auth.uid());
 
 -- Invoices Policies:
 CREATE POLICY "Authenticated view invoices" ON public.invoices FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Authenticated create invoices" ON public.invoices FOR INSERT TO authenticated WITH CHECK (true);
 
-CREATE POLICY "Update invoices policy" ON public.invoices FOR UPDATE TO authenticated
+CREATE POLICY "Owner Admin edit invoices" ON public.invoices FOR ALL TO authenticated
 USING (
-    (public.get_user_role() IN ('Owner', 'Admin'))
-    OR (public.get_user_role() = 'Staff' AND status = 'Draft')
+    (public.get_user_role() IN ('owner', 'admin'))
+    OR (public.get_user_role() = 'staff' AND status = 'Draft')
 )
 WITH CHECK (
-    (public.get_user_role() IN ('Owner', 'Admin'))
-    OR (public.get_user_role() = 'Staff' AND status = 'Draft')
+    (public.get_user_role() IN ('owner', 'admin'))
+    OR (public.get_user_role() = 'staff' AND status = 'Draft')
 );
 
 CREATE POLICY "Owner Admin delete invoices" ON public.invoices FOR DELETE TO authenticated
-USING (public.get_user_role() IN ('Owner', 'Admin'));
+USING (public.get_user_role() IN ('owner', 'admin'));
 
 -- Invoice Items Policies:
 CREATE POLICY "View invoice items" ON public.invoice_items FOR SELECT TO authenticated USING (true);
@@ -279,16 +278,16 @@ CREATE POLICY "Manage invoice items" ON public.invoice_items FOR ALL TO authenti
 
 -- Settings Policies:
 CREATE POLICY "Read company_settings" ON public.company_settings FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Manage company_settings" ON public.company_settings FOR ALL TO authenticated USING (public.get_user_role() IN ('Owner', 'Admin'));
+CREATE POLICY "Manage company_settings" ON public.company_settings FOR ALL TO authenticated USING (public.get_user_role() IN ('owner', 'admin'));
 
 CREATE POLICY "Read bank_settings" ON public.bank_settings FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Manage bank_settings" ON public.bank_settings FOR ALL TO authenticated USING (public.get_user_role() IN ('Owner', 'Admin'));
+CREATE POLICY "Manage bank_settings" ON public.bank_settings FOR ALL TO authenticated USING (public.get_user_role() IN ('owner', 'admin'));
 
 CREATE POLICY "Read invoice_settings" ON public.invoice_settings FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Manage invoice_settings" ON public.invoice_settings FOR ALL TO authenticated USING (public.get_user_role() IN ('Owner', 'Admin'));
+CREATE POLICY "Manage invoice_settings" ON public.invoice_settings FOR ALL TO authenticated USING (public.get_user_role() IN ('owner', 'admin'));
 
 CREATE POLICY "Read qr_settings" ON public.qr_settings FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Manage qr_settings" ON public.qr_settings FOR ALL TO authenticated USING (public.get_user_role() IN ('Owner', 'Admin'));
+CREATE POLICY "Manage qr_settings" ON public.qr_settings FOR ALL TO authenticated USING (public.get_user_role() IN ('owner', 'admin'));
 
 -- Logs Policies:
 CREATE POLICY "Read logs" ON public.invoice_activity_logs FOR SELECT TO authenticated USING (true);

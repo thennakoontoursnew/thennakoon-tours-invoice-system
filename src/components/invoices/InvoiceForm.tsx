@@ -56,9 +56,10 @@ export function InvoiceForm({
   const [notification, setNotification] = useState<NotificationState | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-  // User role permissions
-  const isOwnerOrAdmin = currentProfile.role === 'Owner' || currentProfile.role === 'Admin';
-  const isDraftOnly = currentProfile.role === 'Staff' && initialInvoice && initialInvoice.status !== 'Draft';
+  // User role permissions (normalized case-insensitive)
+  const role = currentProfile?.role?.trim().toLowerCase();
+  const isOwnerOrAdmin = role === 'owner' || role === 'admin';
+  const isDraftOnly = role === 'staff' && initialInvoice && initialInvoice.status !== 'Draft';
 
   // Helper date function
   const getDefaultDueDate = useCallback((dueDays: number) => {

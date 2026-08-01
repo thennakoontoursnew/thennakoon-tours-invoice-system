@@ -36,7 +36,8 @@ export function Sidebar({ profile }: SidebarProps) {
     { label: 'Settings', href: '/settings', icon: Settings },
   ];
 
-  if (profile?.role === 'Owner') {
+  const role = profile?.role?.trim().toLowerCase();
+  if (role === 'owner') {
     navItems.push({ label: 'Users', href: '/users', icon: Users });
   }
 

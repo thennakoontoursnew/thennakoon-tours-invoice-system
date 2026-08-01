@@ -45,8 +45,8 @@ export function InvoicesClient({
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [notification, setNotification] = useState<NotificationState | null>(null);
 
-  const isOwnerOrAdmin =
-    currentProfile.role === 'Owner' || currentProfile.role === 'Admin';
+  const role = currentProfile?.role?.trim().toLowerCase();
+  const isOwnerOrAdmin = role === 'owner' || role === 'admin';
 
   const filteredInvoices = invoices.filter((inv) => {
     if (showArchived ? !inv.archived_at : inv.archived_at) {
@@ -369,7 +369,7 @@ export function InvoicesClient({
               ) : (
                 filteredInvoices.map((inv) => {
                   const canStaffEdit =
-                    currentProfile.role === 'Staff' && inv.status === 'Draft';
+                    role === 'staff' && inv.status === 'Draft';
                   const canEdit = isOwnerOrAdmin || canStaffEdit;
 
                   return (

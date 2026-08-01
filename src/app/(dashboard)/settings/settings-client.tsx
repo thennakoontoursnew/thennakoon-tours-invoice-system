@@ -41,8 +41,9 @@ export function SettingsClient({
   const [isPending, startTransition] = useTransition();
   const [notification, setNotification] = useState<NotificationState | null>(null);
 
-  const canEdit =
-    currentProfile.role === 'Owner' || currentProfile.role === 'Admin';
+  // Normalize role comparison (case-insensitive)
+  const role = currentProfile?.role?.trim().toLowerCase();
+  const canManageSettings = role === 'owner' || role === 'admin';
 
   const [company, setCompany] = useState<CompanySettings>(initialCompany);
   const [bank, setBank] = useState<BankSettings>(initialBank);
@@ -76,7 +77,7 @@ export function SettingsClient({
   };
 
   const handleSaveAllSettings = async () => {
-    if (!canEdit) {
+    if (!canManageSettings) {
       setNotification({
         type: 'error',
         message: 'Staff members cannot update system settings.',
@@ -128,7 +129,7 @@ export function SettingsClient({
           </p>
         </div>
 
-        {canEdit && (
+        {canManageSettings && (
           <button
             onClick={handleSaveAllSettings}
             disabled={isPending}
@@ -140,7 +141,7 @@ export function SettingsClient({
         )}
       </div>
 
-      {!canEdit && (
+      {!canManageSettings && (
         <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-800/60 text-amber-300 text-xs flex items-center gap-3">
           <AlertCircle className="w-5 h-5 shrink-0" />
           <span>Viewing Mode: Staff users can inspect system settings, but only Owner and Admin can save changes.</span>
@@ -163,7 +164,7 @@ export function SettingsClient({
             </label>
             <input
               type="text"
-              disabled={!canEdit}
+              disabled={!canManageSettings}
               value={company.company_name}
               onChange={(e) => setCompany({ ...company, company_name: e.target.value })}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-amber-500 disabled:opacity-60"
@@ -176,7 +177,7 @@ export function SettingsClient({
             </label>
             <input
               type="email"
-              disabled={!canEdit}
+              disabled={!canManageSettings}
               value={company.email}
               onChange={(e) => setCompany({ ...company, email: e.target.value })}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-amber-500 disabled:opacity-60"
@@ -189,7 +190,7 @@ export function SettingsClient({
             </label>
             <input
               type="text"
-              disabled={!canEdit}
+              disabled={!canManageSettings}
               value={company.phone}
               onChange={(e) => setCompany({ ...company, phone: e.target.value })}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-amber-500 disabled:opacity-60"
@@ -202,7 +203,7 @@ export function SettingsClient({
             </label>
             <input
               type="text"
-              disabled={!canEdit}
+              disabled={!canManageSettings}
               value={company.website}
               onChange={(e) => setCompany({ ...company, website: e.target.value })}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-amber-500 disabled:opacity-60"
@@ -215,7 +216,7 @@ export function SettingsClient({
             </label>
             <input
               type="text"
-              disabled={!canEdit}
+              disabled={!canManageSettings}
               value={company.address}
               onChange={(e) => setCompany({ ...company, address: e.target.value })}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-amber-500 disabled:opacity-60"
@@ -236,7 +237,7 @@ export function SettingsClient({
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
-                disabled={!canEdit}
+                disabled={!canManageSettings}
                 checked={company.letterhead_enabled}
                 onChange={(e) =>
                   setCompany({ ...company, letterhead_enabled: e.target.checked })
@@ -249,7 +250,7 @@ export function SettingsClient({
             </label>
           </div>
 
-          {canEdit && (
+          {canManageSettings && (
             <div className="flex flex-wrap items-center gap-3">
               <input
                 type="file"
@@ -302,7 +303,7 @@ export function SettingsClient({
             </label>
             <input
               type="text"
-              disabled={!canEdit}
+              disabled={!canManageSettings}
               value={bank.account_name}
               onChange={(e) => setBank({ ...bank, account_name: e.target.value })}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-amber-500 disabled:opacity-60"
@@ -315,7 +316,7 @@ export function SettingsClient({
             </label>
             <input
               type="text"
-              disabled={!canEdit}
+              disabled={!canManageSettings}
               value={bank.account_number}
               onChange={(e) => setBank({ ...bank, account_number: e.target.value })}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono font-bold text-amber-400 focus:outline-none focus:border-amber-500 disabled:opacity-60"
@@ -328,7 +329,7 @@ export function SettingsClient({
             </label>
             <input
               type="text"
-              disabled={!canEdit}
+              disabled={!canManageSettings}
               value={bank.bank_name}
               onChange={(e) => setBank({ ...bank, bank_name: e.target.value })}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-amber-500 disabled:opacity-60"
@@ -341,7 +342,7 @@ export function SettingsClient({
             </label>
             <input
               type="text"
-              disabled={!canEdit}
+              disabled={!canManageSettings}
               value={bank.branch}
               onChange={(e) => setBank({ ...bank, branch: e.target.value })}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-amber-500 disabled:opacity-60"
@@ -354,7 +355,7 @@ export function SettingsClient({
             </label>
             <input
               type="text"
-              disabled={!canEdit}
+              disabled={!canManageSettings}
               value={bank.swift_code}
               onChange={(e) => setBank({ ...bank, swift_code: e.target.value })}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono text-zinc-200 focus:outline-none focus:border-amber-500 disabled:opacity-60"
@@ -386,7 +387,7 @@ export function SettingsClient({
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
-                disabled={!canEdit}
+                disabled={!canManageSettings}
                 checked={qr.qr_enabled}
                 onChange={(e) => setQr({ ...qr, qr_enabled: e.target.checked })}
                 className="w-4 h-4 accent-amber-500 rounded"
@@ -402,14 +403,14 @@ export function SettingsClient({
               </label>
               <input
                 type="text"
-                disabled={!canEdit}
+                disabled={!canManageSettings}
                 value={qr.qr_label}
                 onChange={(e) => setQr({ ...qr, qr_label: e.target.value })}
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-amber-500 disabled:opacity-60"
               />
             </div>
 
-            {canEdit && (
+            {canManageSettings && (
               <div>
                 <label className="block text-xs font-medium text-zinc-400 mb-1">
                   Upload QR Image
@@ -444,7 +445,7 @@ export function SettingsClient({
             </label>
             <input
               type="text"
-              disabled={!canEdit}
+              disabled={!canManageSettings}
               value={invoice.prefix}
               onChange={(e) => setInvoice({ ...invoice, prefix: e.target.value })}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono font-bold text-amber-400 focus:outline-none focus:border-amber-500 disabled:opacity-60"
@@ -457,7 +458,7 @@ export function SettingsClient({
             </label>
             <input
               type="text"
-              disabled={!canEdit}
+              disabled={!canManageSettings}
               value={invoice.default_payment_terms}
               onChange={(e) =>
                 setInvoice({ ...invoice, default_payment_terms: e.target.value })
@@ -473,7 +474,7 @@ export function SettingsClient({
             <input
               type="number"
               min={1}
-              disabled={!canEdit}
+              disabled={!canManageSettings}
               value={invoice.default_due_days}
               onChange={(e) =>
                 setInvoice({
@@ -491,7 +492,7 @@ export function SettingsClient({
             </label>
             <textarea
               rows={2}
-              disabled={!canEdit}
+              disabled={!canManageSettings}
               value={invoice.default_special_notes}
               onChange={(e) =>
                 setInvoice({ ...invoice, default_special_notes: e.target.value })
@@ -506,7 +507,7 @@ export function SettingsClient({
             </label>
             <textarea
               rows={3}
-              disabled={!canEdit}
+              disabled={!canManageSettings}
               value={invoice.default_important_notes}
               onChange={(e) =>
                 setInvoice({ ...invoice, default_important_notes: e.target.value })

@@ -205,9 +205,9 @@ export function UsersClient({
                   <td className="py-3.5 px-4">
                     <span
                       className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold border ${
-                        p.role === 'Owner'
+                        p.role?.trim().toLowerCase() === 'owner'
                           ? 'bg-amber-950/90 text-amber-300 border-amber-800/80'
-                          : p.role === 'Admin'
+                          : p.role?.trim().toLowerCase() === 'admin'
                           ? 'bg-blue-950/90 text-blue-300 border-blue-800/80'
                           : 'bg-zinc-800 text-zinc-300 border-zinc-700'
                       }`}
