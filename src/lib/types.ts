@@ -47,6 +47,11 @@ export interface QrSnapshot {
   qr_label?: string;
 }
 
+export interface DeductionItem {
+  description: string;
+  amount: number;
+}
+
 export interface PreparedBySnapshot {
   full_name: string;
   designation: string;
@@ -100,6 +105,7 @@ export interface Invoice {
 
   // Snapshots
   items_snapshot: InvoiceItem[];
+  deduction_items?: DeductionItem[];
   company_snapshot: CompanySnapshot;
   bank_snapshot: BankSnapshot;
   qr_snapshot: QrSnapshot;

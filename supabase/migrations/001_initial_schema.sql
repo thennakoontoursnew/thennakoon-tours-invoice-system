@@ -90,6 +90,7 @@ CREATE TABLE IF NOT EXISTS public.invoices (
 
     -- Snapshots
     items_snapshot JSONB NOT NULL DEFAULT '[]'::jsonb,
+    deduction_items JSONB NOT NULL DEFAULT '[]'::jsonb,
     company_snapshot JSONB NOT NULL DEFAULT '{}'::jsonb,
     bank_snapshot JSONB NOT NULL DEFAULT '{}'::jsonb,
     qr_snapshot JSONB NOT NULL DEFAULT '{}'::jsonb,

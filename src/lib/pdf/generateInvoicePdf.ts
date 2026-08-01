@@ -85,20 +85,21 @@ export async function createInvoicePdfDoc(invoice: Invoice): Promise<jsPDF> {
 
   await renderBackground();
 
-  // Top margin is 44mm to clear letterhead header artwork safely
-  let currentY = 44;
+  // Top margin is 46mm to clear top-left letterhead artwork completely
+  let currentY = 46;
+  const headerX = 18; // Safe X offset from left edge
 
   // 1. HEADER AREA
   // Left: INVOICE Heading + Invoice Date directly below
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(22);
   doc.setTextColor(217, 119, 6); // Amber gold #d97706
-  doc.text('INVOICE', marginX, currentY);
+  doc.text('INVOICE', headerX, currentY);
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(70, 70, 70);
-  doc.text(`Invoice Date: ${formatDate(invoice.invoice_date)}`, marginX, currentY + 6);
+  doc.text(`Invoice Date: ${formatDate(invoice.invoice_date)}`, headerX, currentY + 6);
 
   // Right: INVOICE NO: + TT-IN-1001 (No Status)
   doc.setFontSize(8.5);
@@ -291,12 +292,34 @@ export async function createInvoicePdfDoc(invoice: Invoice): Promise<jsPDF> {
   if (invoice.discount && invoice.discount > 0) {
     addTotalRow('Discount', invoice.discount, false, false, '- ');
   }
-  if (invoice.deduction && invoice.deduction > 0) {
-    addTotalRow('Deduction', invoice.deduction, false, false, '- ');
+
+  // Deductions handling (support optional multi-item deductions)
+  const deductionItems =
+    invoice.deduction_items && invoice.deduction_items.length > 0
+      ? invoice.deduction_items
+      : invoice.deduction && invoice.deduction > 0
+      ? [{ description: 'Deduction', amount: invoice.deduction }]
+      : [];
+
+  const totalDeductionsAmt = deductionItems.reduce(
+    (acc, item) => acc + (item.amount || 0),
+    0
+  );
+
+  deductionItems.forEach((d) => {
+    if (d.amount > 0) {
+      addTotalRow(d.description || 'Deduction', d.amount, false, false, '- ');
+    }
+  });
+
+  if (deductionItems.length > 1 && totalDeductionsAmt > 0) {
+    addTotalRow('Total Deductions', totalDeductionsAmt, true, false, '- ');
   }
+
   if (invoice.advance_payment && invoice.advance_payment > 0) {
     addTotalRow('Advance Payment', invoice.advance_payment, false, false, '- ');
   }
+
   if (invoice.tax_amount && invoice.tax_amount > 0) {
     addTotalRow('Tax', invoice.tax_amount, false, false, '+ ');
   }
@@ -393,8 +416,8 @@ export async function createInvoicePdfDoc(invoice: Invoice): Promise<jsPDF> {
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(70, 70, 70);
       const splitImp = doc.splitTextToSize(invoice.important_notes, contentWidth);
-      doc.text(splitImp, marginX, currentY, { align: 'justify' });
-      currentY += splitImp.length * 3.6 + 4;
+      doc.text(splitImp, marginX, currentY);
+      currentY += splitImp.length * 3.8 + 4;
     }
   }
 

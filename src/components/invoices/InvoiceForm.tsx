@@ -20,6 +20,7 @@ import { createClient } from '@/lib/supabase/client';
 import {
   Invoice,
   InvoiceItem,
+  DeductionItem,
   Profile,
   CompanySettings,
   BankSettings,
@@ -150,7 +151,13 @@ export function InvoiceForm({
 
   // Section 5: Financial Adjustments
   const [discount, setDiscount] = useState<number>(initialInvoice?.discount || 0);
-  const [deduction, setDeduction] = useState<number>(initialInvoice?.deduction || 0);
+  const [deductionItems, setDeductionItems] = useState<DeductionItem[]>(
+    initialInvoice?.deduction_items?.length
+      ? initialInvoice.deduction_items
+      : initialInvoice?.deduction && initialInvoice.deduction > 0
+      ? [{ description: 'Deduction', amount: initialInvoice.deduction }]
+      : []
+  );
   const [taxRate, setTaxRate] = useState<number>(invoiceSettings.default_tax_rate || 0);
   const [advancePayment, setAdvancePayment] = useState<number>(initialInvoice?.advance_payment || 0);
   const [amountPaid, setAmountPaid] = useState<number>(initialInvoice?.amount_paid || 0);
@@ -226,14 +233,44 @@ export function InvoiceForm({
   const subtotal = items.reduce((acc, curr) => acc + (curr.line_total || 0), 0);
   const taxAmount = (subtotal * (taxRate || 0)) / 100;
 
-  // Net Amount = Subtotal + Tax - Discount - Deduction - Advance Payment
+  const totalDeductions = deductionItems.reduce(
+    (acc, curr) => acc + (curr.amount || 0),
+    0
+  );
+
+  // Net Amount = Subtotal + Tax - Discount - Total Deductions - Advance Payment
   const calculatedNet = Math.max(
     0,
-    subtotal + taxAmount - (discount || 0) - (deduction || 0) - (advancePayment || 0)
+    subtotal + taxAmount - (discount || 0) - totalDeductions - (advancePayment || 0)
   );
 
   // Balance Due = Net Amount - Amount Paid
   const balanceDue = Math.max(0, calculatedNet - (amountPaid || 0));
+
+  // Deduction item operations
+  const addDeductionItem = () => {
+    setDeductionItems([...deductionItems, { description: '', amount: 0 }]);
+  };
+
+  const removeDeductionItem = (index: number) => {
+    setDeductionItems(deductionItems.filter((_, i) => i !== index));
+  };
+
+  const handleDeductionChange = (
+    index: number,
+    field: keyof DeductionItem,
+    value: string | number
+  ) => {
+    const updated = [...deductionItems];
+    const item = { ...updated[index] };
+    if (field === 'description') {
+      item.description = value as string;
+    } else if (field === 'amount') {
+      item.amount = Math.max(0, Number(value) || 0);
+    }
+    updated[index] = item;
+    setDeductionItems(updated);
+  };
 
   // Item row operations
   const handleItemChange = (
@@ -315,6 +352,10 @@ export function InvoiceForm({
         const seqMatch = invoiceNumber.match(/\d+/);
         const parsedSeq = seqMatch ? parseInt(seqMatch[0], 10) : 1001;
 
+        const validDeductionItems = deductionItems.filter(
+          (d) => d.description.trim() !== '' || d.amount > 0
+        );
+
         const invoicePayload = {
           invoice_number: invoiceNumber,
           invoice_sequence: parsedSeq,
@@ -343,7 +384,8 @@ export function InvoiceForm({
 
           subtotal,
           discount,
-          deduction,
+          deduction: totalDeductions,
+          deduction_items: validDeductionItems,
           tax_amount: taxAmount,
           advance_payment: advancePayment,
           net_amount: calculatedNet,
@@ -455,7 +497,8 @@ export function InvoiceForm({
     dropoff_location: dropoffLocation,
     subtotal,
     discount,
-    deduction,
+    deduction: totalDeductions,
+    deduction_items: deductionItems,
     tax_amount: taxAmount,
     advance_payment: advancePayment,
     net_amount: calculatedNet,
@@ -987,17 +1030,56 @@ export function InvoiceForm({
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">
-                Deduction Amount (LKR)
-              </label>
-              <input
-                type="number"
-                min={0}
-                value={deduction}
-                onChange={(e) => setDeduction(Math.max(0, Number(e.target.value) || 0))}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-amber-500"
-              />
+            {/* Dynamic Deductions Section */}
+            <div className="pt-2 pb-2 border-t border-b border-zinc-850 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-amber-400 uppercase tracking-wider">
+                  Deductions (Optional)
+                </label>
+                <button
+                  type="button"
+                  onClick={addDeductionItem}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[11px] font-semibold transition-colors"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>Add Deduction</span>
+                </button>
+              </div>
+
+              {deductionItems.length === 0 ? (
+                <p className="text-[11px] text-zinc-500 italic">
+                  No deductions added. Click &quot;Add Deduction&quot; to specify damage, fuel, or late fee deductions.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {deductionItems.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder="e.g. Damage / Fuel / Adjustment"
+                        value={item.description}
+                        onChange={(e) => handleDeductionChange(idx, 'description', e.target.value)}
+                        className="flex-1 bg-zinc-950 border border-zinc-800 rounded-md px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-amber-500"
+                      />
+                      <input
+                        type="number"
+                        min={0}
+                        placeholder="Amount"
+                        value={item.amount || ''}
+                        onChange={(e) => handleDeductionChange(idx, 'amount', e.target.value)}
+                        className="w-28 bg-zinc-950 border border-zinc-800 rounded-md px-2.5 py-1.5 text-xs text-right font-mono text-zinc-200 focus:outline-none focus:border-amber-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeDeductionItem(idx)}
+                        className="p-1 text-zinc-500 hover:text-red-400 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>
@@ -1067,10 +1149,17 @@ export function InvoiceForm({
               </div>
             )}
 
-            {deduction > 0 && (
-              <div className="flex justify-between text-xs text-zinc-400">
-                <span>Deduction:</span>
-                <span className="font-semibold text-red-400">- {formatLKR(deduction)}</span>
+            {deductionItems.map((d, i) => (
+              <div key={i} className="flex justify-between text-xs text-zinc-400">
+                <span>{d.description || 'Deduction'}:</span>
+                <span className="font-semibold text-red-400">- {formatLKR(d.amount)}</span>
+              </div>
+            ))}
+
+            {deductionItems.length > 1 && totalDeductions > 0 && (
+              <div className="flex justify-between text-xs font-bold text-red-400 border-t border-zinc-850/60 pt-1">
+                <span>Total Deductions:</span>
+                <span>- {formatLKR(totalDeductions)}</span>
               </div>
             )}
 

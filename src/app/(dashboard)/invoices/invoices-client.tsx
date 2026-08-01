@@ -135,6 +135,7 @@ export function InvoicesClient({
           subtotal: inv.subtotal,
           discount: inv.discount,
           deduction: inv.deduction,
+          deduction_items: inv.deduction_items || [],
           tax_amount: inv.tax_amount,
           advance_payment: inv.advance_payment,
           net_amount: Math.max(0, newNet),
