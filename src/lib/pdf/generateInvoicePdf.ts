@@ -19,6 +19,39 @@ async function getBase64ImageFromUrl(imageUrl: string): Promise<string | null> {
   }
 }
 
+// Reusable label-value renderer with aligned colons
+function drawLabelValueRow(
+  doc: jsPDF,
+  label: string,
+  value: string | undefined | null,
+  labelX: number,
+  colonX: number,
+  valueX: number,
+  y: number,
+  maxValueWidth: number = 60,
+  isBoldValue: boolean = false
+): number {
+  if (!value) return 0;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(70, 70, 70);
+  doc.text(label, labelX, y);
+  doc.text(':', colonX, y);
+
+  if (isBoldValue) {
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(20, 20, 20);
+  } else {
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(50, 50, 50);
+  }
+
+  const splitVal = doc.splitTextToSize(value, maxValueWidth);
+  doc.text(splitVal, valueX, y);
+  return splitVal.length * 4.2;
+}
+
 export async function createInvoicePdfDoc(invoice: Invoice): Promise<jsPDF> {
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -31,46 +64,54 @@ export async function createInvoicePdfDoc(invoice: Invoice): Promise<jsPDF> {
   const marginX = 15;
   const contentWidth = pageWidth - marginX * 2; // 180mm
 
-  // 1. Render Background Letterhead if enabled
-  const letterheadUrl =
-    invoice.company_snapshot?.letterhead_url ||
-    '/documents/thennakoon-tours-letterhead.png';
-  const isLetterheadEnabled = invoice.company_snapshot?.letterhead_enabled !== false;
+  // Helper to render letterhead background image
+  const renderBackground = async () => {
+    const letterheadUrl =
+      invoice.company_snapshot?.letterhead_url ||
+      '/documents/thennakoon-tours-letterhead.png';
+    const isLetterheadEnabled = invoice.company_snapshot?.letterhead_enabled !== false;
 
-  if (isLetterheadEnabled && letterheadUrl) {
-    try {
-      const letterheadBase64 = await getBase64ImageFromUrl(letterheadUrl);
-      if (letterheadBase64) {
-        doc.addImage(letterheadBase64, 'PNG', 0, 0, pageWidth, pageHeight);
+    if (isLetterheadEnabled && letterheadUrl) {
+      try {
+        const letterheadBase64 = await getBase64ImageFromUrl(letterheadUrl);
+        if (letterheadBase64) {
+          doc.addImage(letterheadBase64, 'PNG', 0, 0, pageWidth, pageHeight);
+        }
+      } catch (e) {
+        console.warn('Could not load letterhead background image:', e);
       }
-    } catch (e) {
-      console.warn('Could not load letterhead background image:', e);
     }
-  }
+  };
 
-  // Safe vertical offsets
-  // Top margin is 44mm to clear letterhead header artwork
+  await renderBackground();
+
+  // Top margin is 44mm to clear letterhead header artwork safely
   let currentY = 44;
 
-  // Header Title & Primary Invoice Badge
+  // 1. HEADER AREA
+  // Left: INVOICE Heading + Invoice Date directly below
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(22);
   doc.setTextColor(217, 119, 6); // Amber gold #d97706
   doc.text('INVOICE', marginX, currentY);
 
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(50, 50, 50);
-  doc.text(`# ${invoice.invoice_number}`, marginX + 45, currentY);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(70, 70, 70);
+  doc.text(`Invoice Date: ${formatDate(invoice.invoice_date)}`, marginX, currentY + 6);
 
-  // Status Badge on Right Top
-  doc.setFontSize(10);
+  // Right: INVOICE NO: + TT-IN-1001 (No Status)
+  doc.setFontSize(8.5);
   doc.setFont('helvetica', 'bold');
-  const statusStr = (invoice.status || 'DRAFT').toUpperCase();
-  doc.setTextColor(30, 30, 30);
-  doc.text(`STATUS: ${statusStr}`, pageWidth - marginX, currentY, { align: 'right' });
+  doc.setTextColor(100, 100, 100);
+  doc.text('INVOICE NO:', pageWidth - marginX, currentY, { align: 'right' });
 
-  currentY += 8;
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(20, 20, 20);
+  doc.text(invoice.invoice_number || 'TT-IN-1001', pageWidth - marginX, currentY + 6, { align: 'right' });
+
+  currentY += 15;
 
   // Divider Line
   doc.setDrawColor(220, 220, 220);
@@ -79,116 +120,95 @@ export async function createInvoicePdfDoc(invoice: Invoice): Promise<jsPDF> {
 
   currentY += 6;
 
-  // SECTION 1: INVOICE DETAILS & CUSTOMER / RENTAL (2 Columns)
+  // 2. INVOICE TO & RENTAL METADATA (2 Columns with aligned colons)
   const col1X = marginX;
-  const col2X = marginX + 92;
-  const colWidth = 86;
+  const colon1X = marginX + 20;
+  const val1X = marginX + 23;
+  const val1Width = 58;
 
-  // Customer Details (Left Box)
+  const col2X = marginX + 92;
+  const colon2X = marginX + 92 + 25;
+  const val2X = marginX + 92 + 28;
+  const val2Width = 60;
+
+  // Left Column: Customer Details
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(180, 130, 20);
   doc.text('INVOICE TO:', col1X, currentY);
 
-  let custY = currentY + 5;
+  let custY = currentY + 5.5;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(20, 20, 20);
   doc.text(invoice.customer_name || 'Valued Customer', col1X, custY);
-  custY += 4.5;
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  doc.setTextColor(70, 70, 70);
+  custY += 5;
 
   if (invoice.customer_company) {
-    doc.text(`Company: ${invoice.customer_company}`, col1X, custY);
-    custY += 4;
+    custY += drawLabelValueRow(doc, 'Company', invoice.customer_company, col1X, colon1X, val1X, custY, val1Width);
   }
   if (invoice.customer_phone) {
-    doc.text(`Phone: ${invoice.customer_phone}`, col1X, custY);
-    custY += 4;
+    custY += drawLabelValueRow(doc, 'Phone', invoice.customer_phone, col1X, colon1X, val1X, custY, val1Width);
   }
   if (invoice.customer_email) {
-    doc.text(`Email: ${invoice.customer_email}`, col1X, custY);
-    custY += 4;
+    custY += drawLabelValueRow(doc, 'Email', invoice.customer_email, col1X, colon1X, val1X, custY, val1Width);
   }
   if (invoice.customer_address) {
-    const splitAddr = doc.splitTextToSize(`Address: ${invoice.customer_address}`, colWidth);
-    doc.text(splitAddr, col1X, custY);
-    custY += splitAddr.length * 3.8;
+    custY += drawLabelValueRow(doc, 'Address', invoice.customer_address, col1X, colon1X, val1X, custY, val1Width);
   }
   if (invoice.customer_reference) {
-    doc.text(`Ref: ${invoice.customer_reference}`, col1X, custY);
-    custY += 4;
+    custY += drawLabelValueRow(doc, 'Reference', invoice.customer_reference, col1X, colon1X, val1X, custY, val1Width);
   }
 
-  // Invoice Meta & Vehicle Details (Right Box)
+  // Right Column: Rental Metadata (No Invoice Date, No Payment Terms)
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(180, 130, 20);
   doc.text('INVOICE METADATA & RENTAL:', col2X, currentY);
 
-  let metaY = currentY + 5;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  doc.setTextColor(50, 50, 50);
+  let metaY = currentY + 5.5;
 
-  doc.text(`Invoice Date: ${formatDate(invoice.invoice_date)}`, col2X, metaY);
-  metaY += 4;
-  doc.text(`Due Date: ${formatDate(invoice.due_date)}`, col2X, metaY);
-  metaY += 4;
-  doc.text(`Payment Terms: ${invoice.payment_terms || '7 Days'}`, col2X, metaY);
-  metaY += 4;
-
-  if (invoice.quotation_reference) {
-    doc.text(`Quotation Ref: ${invoice.quotation_reference}`, col2X, metaY);
-    metaY += 4;
+  if (invoice.due_date) {
+    metaY += drawLabelValueRow(doc, 'Due Date', formatDate(invoice.due_date), col2X, colon2X, val2X, metaY, val2Width, true);
   }
 
-  if (invoice.vehicle_name || invoice.vehicle_registration_number) {
-    doc.setFont('helvetica', 'bold');
-    doc.text(
-      `Vehicle: ${invoice.vehicle_name || ''} ${
-        invoice.vehicle_registration_number ? `(${invoice.vehicle_registration_number})` : ''
-      }`,
-      col2X,
-      metaY
-    );
-    doc.setFont('helvetica', 'normal');
-    metaY += 4;
+  const vehicleStr = `${invoice.vehicle_name || ''} ${
+    invoice.vehicle_registration_number ? `(${invoice.vehicle_registration_number})` : ''
+  }`.trim();
+
+  if (vehicleStr) {
+    metaY += drawLabelValueRow(doc, 'Vehicle', vehicleStr, col2X, colon2X, val2X, metaY, val2Width, true);
   }
 
   if (invoice.rental_start_date || invoice.rental_end_date) {
-    doc.text(
-      `Period: ${formatDate(invoice.rental_start_date)} to ${formatDate(invoice.rental_end_date)} (${
-        invoice.rental_days || 1
-      } Days)`,
-      col2X,
-      metaY
-    );
-    metaY += 4;
+    const periodStr = `${formatDate(invoice.rental_start_date)} to ${formatDate(invoice.rental_end_date)} (${
+      invoice.rental_days || 1
+    } Days)`;
+    metaY += drawLabelValueRow(doc, 'Rental Period', periodStr, col2X, colon2X, val2X, metaY, val2Width);
   }
 
   if (invoice.destination) {
-    doc.text(`Destination: ${invoice.destination}`, col2X, metaY);
-    metaY += 4;
+    metaY += drawLabelValueRow(doc, 'Destination', invoice.destination, col2X, colon2X, val2X, metaY, val2Width);
   }
 
-  // Set currentY to max of columns
-  currentY = Math.max(custY, metaY) + 4;
+  if (invoice.quotation_reference) {
+    metaY += drawLabelValueRow(doc, 'Quotation Ref', invoice.quotation_reference, col2X, colon2X, val2X, metaY, val2Width);
+  }
 
-  // SECTION 2: ITEMS TABLE
-  const tableItems = (invoice.items_snapshot && invoice.items_snapshot.length > 0)
-    ? invoice.items_snapshot
-    : [
-        {
-          description: 'Vehicle Rental Service',
-          quantity: 1,
-          unit_price: invoice.subtotal || 0,
-          line_total: invoice.subtotal || 0,
-        },
-      ];
+  currentY = Math.max(custY, metaY) + 5;
+
+  // 3. INVOICE ITEMS TABLE
+  const tableItems =
+    invoice.items_snapshot && invoice.items_snapshot.length > 0
+      ? invoice.items_snapshot
+      : [
+          {
+            description: 'Vehicle Rental Service',
+            quantity: 1,
+            unit_price: invoice.subtotal || 0,
+            line_total: invoice.subtotal || 0,
+          },
+        ];
 
   const tableBody = tableItems.map((item, idx) => [
     (idx + 1).toString(),
@@ -228,76 +248,24 @@ export async function createInvoicePdfDoc(invoice: Invoice): Promise<jsPDF> {
     },
   });
 
-  // Get final Y after table
   const docWithAutoTable = doc as unknown as { lastAutoTable: { finalY: number } };
   currentY = docWithAutoTable.lastAutoTable.finalY + 6;
 
-  // SECTION 3: FINANCIAL SUMMARY & BANK DETAILS
-  const sumLeftX = marginX;
-  const sumRightX = marginX + 100;
-  const sumRightWidth = 80;
+  // 4. PAYMENT SUMMARY (Right aligned, below table)
+  const sumRightX = marginX + 95;
+  const sumRightWidth = 85;
+  let summaryY = currentY;
 
-  // Left Side: Bank Details & QR
-  const bank = invoice.bank_snapshot || {};
-  let leftY = currentY;
-
-  doc.setFontSize(8.5);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(180, 130, 20);
-  doc.text('PAYMENT & BANK DETAILS:', sumLeftX, leftY);
-  leftY += 4.5;
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(60, 60, 60);
-
-  if (bank.account_name) {
-    doc.text(`Account Name: ${bank.account_name}`, sumLeftX, leftY);
-    leftY += 3.8;
-  }
-  if (bank.bank_name) {
-    doc.text(`Bank: ${bank.bank_name} ${bank.branch ? `(${bank.branch})` : ''}`, sumLeftX, leftY);
-    leftY += 3.8;
-  }
-  if (bank.account_number) {
-    doc.setFont('helvetica', 'bold');
-    doc.text(`Account No: ${bank.account_number}`, sumLeftX, leftY);
-    doc.setFont('helvetica', 'normal');
-    leftY += 3.8;
-  }
-  if (bank.swift_code) {
-    doc.text(`Swift Code: ${bank.swift_code}`, sumLeftX, leftY);
-    leftY += 3.8;
-  }
-
-  // QR Code Image if available
-  const qr = invoice.qr_snapshot;
-  if (qr?.qr_enabled && qr?.qr_image_url) {
-    try {
-      const qrBase64 = await getBase64ImageFromUrl(qr.qr_image_url);
-      if (qrBase64) {
-        doc.addImage(qrBase64, 'PNG', sumLeftX, leftY + 2, 22, 22);
-        if (qr.qr_label) {
-          doc.setFontSize(7);
-          doc.text(qr.qr_label, sumLeftX + 25, leftY + 12);
-        }
-        leftY += 26;
-      }
-    } catch {
-      // Ignore QR image fail
-    }
-  }
-
-  // Right Side: Totals Breakdown Table
-  let rightY = currentY;
-  doc.setFontSize(8.5);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(60, 60, 60);
-
-  const addTotalRow = (label: string, value: number, isBold = false, isHighlight = false, prefix = '') => {
+  const addTotalRow = (
+    label: string,
+    value: number,
+    isBold = false,
+    isHighlight = false,
+    prefix = ''
+  ) => {
     if (isHighlight) {
       doc.setFillColor(24, 24, 27);
-      doc.rect(sumRightX, rightY - 3, sumRightWidth, 6.5, 'F');
+      doc.rect(sumRightX, summaryY - 3, sumRightWidth, 7, 'F');
       doc.setTextColor(250, 204, 21); // Yellow accent
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9.5);
@@ -311,16 +279,15 @@ export async function createInvoicePdfDoc(invoice: Invoice): Promise<jsPDF> {
       doc.setFontSize(8.5);
     }
 
-    doc.text(label, sumRightX + 2, rightY);
-    doc.text(`${prefix}${formatLKR(value)}`, sumRightX + sumRightWidth - 2, rightY, { align: 'right' });
-    rightY += isHighlight ? 7.5 : 4.5;
+    doc.text(label, sumRightX + 2.5, summaryY);
+    doc.text(`${prefix}${formatLKR(value)}`, sumRightX + sumRightWidth - 2.5, summaryY, {
+      align: 'right',
+    });
+    summaryY += isHighlight ? 8 : 4.8;
   };
 
   addTotalRow('Subtotal', invoice.subtotal || 0);
 
-  if (invoice.tax_amount && invoice.tax_amount > 0) {
-    addTotalRow('Tax', invoice.tax_amount);
-  }
   if (invoice.discount && invoice.discount > 0) {
     addTotalRow('Discount', invoice.discount, false, false, '- ');
   }
@@ -329,6 +296,9 @@ export async function createInvoicePdfDoc(invoice: Invoice): Promise<jsPDF> {
   }
   if (invoice.advance_payment && invoice.advance_payment > 0) {
     addTotalRow('Advance Payment', invoice.advance_payment, false, false, '- ');
+  }
+  if (invoice.tax_amount && invoice.tax_amount > 0) {
+    addTotalRow('Tax', invoice.tax_amount, false, false, '+ ');
   }
 
   addTotalRow('Net Amount', invoice.net_amount || 0, true);
@@ -339,9 +309,60 @@ export async function createInvoicePdfDoc(invoice: Invoice): Promise<jsPDF> {
 
   addTotalRow('BALANCE DUE', invoice.balance_due || 0, true, true);
 
-  currentY = Math.max(leftY, rightY) + 6;
+  currentY = summaryY + 6;
 
-  // SECTION 4: NOTES & PREPARED BY
+  // 5. PAYMENT & BANK DETAILS (Placed BELOW Balance Due)
+  const bank = invoice.bank_snapshot || {};
+  const bankColX = marginX;
+  const bankColonX = marginX + 30;
+  const bankValX = marginX + 33;
+  const bankValWidth = 100;
+
+  if (bank.account_name || bank.account_number || bank.bank_name) {
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(180, 130, 20);
+    doc.text('PAYMENT & BANK DETAILS:', bankColX, currentY);
+    currentY += 5.5;
+
+    if (bank.account_name) {
+      currentY += drawLabelValueRow(doc, 'Account Name', bank.account_name, bankColX, bankColonX, bankValX, currentY, bankValWidth);
+    }
+    const bankDetailsStr = `${bank.bank_name || ''} ${bank.branch ? `(${bank.branch})` : ''}`.trim();
+    if (bankDetailsStr) {
+      currentY += drawLabelValueRow(doc, 'Bank', bankDetailsStr, bankColX, bankColonX, bankValX, currentY, bankValWidth);
+    }
+    if (bank.account_number) {
+      currentY += drawLabelValueRow(doc, 'Account No', bank.account_number, bankColX, bankColonX, bankValX, currentY, bankValWidth, true);
+    }
+    if (bank.swift_code) {
+      currentY += drawLabelValueRow(doc, 'Swift Code', bank.swift_code, bankColX, bankColonX, bankValX, currentY, bankValWidth);
+    }
+
+    currentY += 4;
+  }
+
+  // QR Code Image if enabled
+  const qr = invoice.qr_snapshot;
+  if (qr?.qr_enabled && qr?.qr_image_url) {
+    try {
+      const qrBase64 = await getBase64ImageFromUrl(qr.qr_image_url);
+      if (qrBase64) {
+        doc.addImage(qrBase64, 'PNG', bankColX, currentY, 20, 20);
+        if (qr.qr_label) {
+          doc.setFontSize(7.5);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(80, 80, 80);
+          doc.text(qr.qr_label, bankColX + 23, currentY + 10);
+        }
+        currentY += 23;
+      }
+    } catch {
+      // Ignore QR fail
+    }
+  }
+
+  // 6. SPECIAL NOTES & IMPORTANT TERMS (If present)
   if (invoice.special_notes || invoice.important_notes) {
     doc.setDrawColor(230, 230, 230);
     doc.setLineWidth(0.3);
@@ -349,7 +370,7 @@ export async function createInvoicePdfDoc(invoice: Invoice): Promise<jsPDF> {
     currentY += 5;
 
     if (invoice.special_notes) {
-      doc.setFontSize(8);
+      doc.setFontSize(8.5);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(180, 130, 20);
       doc.text('SPECIAL NOTES:', marginX, currentY);
@@ -359,11 +380,11 @@ export async function createInvoicePdfDoc(invoice: Invoice): Promise<jsPDF> {
       doc.setTextColor(70, 70, 70);
       const splitSpecial = doc.splitTextToSize(invoice.special_notes, contentWidth);
       doc.text(splitSpecial, marginX, currentY);
-      currentY += splitSpecial.length * 3.6 + 2;
+      currentY += splitSpecial.length * 3.6 + 3;
     }
 
     if (invoice.important_notes) {
-      doc.setFontSize(8);
+      doc.setFontSize(8.5);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(180, 130, 20);
       doc.text('IMPORTANT TERMS & CONDITIONS:', marginX, currentY);
@@ -377,29 +398,40 @@ export async function createInvoicePdfDoc(invoice: Invoice): Promise<jsPDF> {
     }
   }
 
-  // Prepared By Signature Block (Bottom Safe Area ~240mm)
-  const prepY = Math.max(currentY, 240);
-  const prepX = pageWidth - marginX - 55;
-
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(50, 50, 50);
-  doc.text('PREPARED BY:', prepX, prepY);
-
-  doc.setDrawColor(180, 180, 180);
-  doc.setLineWidth(0.4);
-  doc.line(prepX, prepY + 10, prepX + 55, prepY + 10);
+  // 7. PREPARED BY SECTION (Left-aligned, No Signature Line)
+  // Check if we need page overflow protection
+  if (currentY > 255) {
+    doc.addPage();
+    await renderBackground();
+    currentY = 44;
+  } else {
+    currentY += 6;
+  }
 
   const prepName = invoice.prepared_by_snapshot?.full_name || invoice.prepared_by || 'Authorized Officer';
   const prepDesig = invoice.prepared_by_snapshot?.designation || 'Executive';
 
+  doc.setFontSize(8.5);
   doc.setFont('helvetica', 'bold');
-  doc.text(prepName, prepX, prepY + 14);
+  doc.setTextColor(50, 50, 50);
+  doc.text('PREPARED BY:', marginX, currentY);
+  currentY += 4.5;
 
+  doc.setFontSize(9.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(20, 20, 20);
+  doc.text(prepName, marginX, currentY);
+  currentY += 4;
+
+  doc.setFontSize(8.5);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100, 100, 100);
-  doc.text(prepDesig, prepX, prepY + 18);
-  doc.text('Thennakoon Tours (Pvt) Ltd', prepX, prepY + 22);
+  doc.setTextColor(80, 80, 80);
+  doc.text(prepDesig, marginX, currentY);
+  currentY += 3.8;
+
+  doc.setFontSize(8);
+  doc.setTextColor(120, 120, 120);
+  doc.text('Thennakoon Tours (Pvt) Ltd', marginX, currentY);
 
   return doc;
 }
