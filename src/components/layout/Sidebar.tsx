@@ -30,13 +30,12 @@ export function Sidebar({ profile }: SidebarProps) {
   };
 
   const navItems = [
-    { label: 'Dashboard', href: '/', icon: LayoutDashboard },
+    { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { label: 'New Invoice', href: '/invoices/new', icon: FilePlus2 },
     { label: 'Invoices', href: '/invoices', icon: Receipt },
     { label: 'Settings', href: '/settings', icon: Settings },
   ];
 
-  // Users tab visible to Owner only
   if (profile?.role === 'Owner') {
     navItems.push({ label: 'Users', href: '/users', icon: Users });
   }
@@ -62,10 +61,7 @@ export function Sidebar({ profile }: SidebarProps) {
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive =
-            item.href === '/'
-              ? pathname === '/'
-              : pathname.startsWith(item.href);
+          const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
 
           return (
             <Link

@@ -12,7 +12,7 @@ import {
 import { createClient } from '@/lib/supabase/server';
 import { Invoice } from '@/lib/types';
 import { formatLKR } from '@/lib/utils';
-import { DashboardClient } from './dashboard-client';
+import { DashboardClient } from '../dashboard-client';
 
 export const revalidate = 0;
 

@@ -14,7 +14,6 @@ export default async function UsersManagementPage() {
 
   if (!user) redirect('/login');
 
-  // Verify current user is Owner
   const { data: profileData } = await supabase
     .from('profiles')
     .select('*')
@@ -22,10 +21,9 @@ export default async function UsersManagementPage() {
     .single();
 
   if (!profileData || profileData.role !== 'Owner') {
-    redirect('/');
+    redirect('/dashboard');
   }
 
-  // Fetch all user profiles
   const { data: allProfiles } = await supabase
     .from('profiles')
     .select('*')

@@ -57,9 +57,9 @@ export default function LoginPage() {
         });
 
         setTimeout(() => {
-          router.push('/');
+          router.push('/dashboard');
           router.refresh();
-        }, 800);
+        }, 600);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'Invalid email or password.';
         setNotification({

@@ -41,10 +41,20 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
+  // Handle Root "/" Route
+  if (path === '/') {
+    if (user) {
+      url.pathname = '/dashboard';
+    } else {
+      url.pathname = '/login';
+    }
+    return NextResponse.redirect(url);
+  }
+
   // If user is accessing login or owner-setup
   if (path === '/login' || path === '/owner-setup') {
     if (user) {
-      url.pathname = '/';
+      url.pathname = '/dashboard';
       return NextResponse.redirect(url);
     }
     return supabaseResponse;
