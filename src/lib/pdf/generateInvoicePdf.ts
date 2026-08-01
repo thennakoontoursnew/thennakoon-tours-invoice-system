@@ -407,7 +407,7 @@ export async function createInvoicePdfDoc(invoice: Invoice): Promise<jsPDF> {
 export function formatInvoicePdfFilename(invoice: Invoice): string {
   const sanitize = (str: string) => str.replace(/[^a-zA-Z0-9_-]/g, '-');
   const cust = sanitize(invoice.customer_name || 'Customer');
-  const num = sanitize(invoice.invoice_number || 'TT-IN-0000');
+  const num = sanitize(invoice.invoice_number || 'TT-IN-1001');
   return `TT-Invoice-${num}-${cust}.pdf`;
 }
 

@@ -19,9 +19,9 @@ CREATE TABLE IF NOT EXISTS public.invoice_number_sequences (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Function to generate atomic invoice numbers: TT-IN-YYYY-0001
-CREATE OR REPLACE FUNCTION public.generate_next_invoice_number(p_year INT DEFAULT EXTRACT(YEAR FROM CURRENT_DATE)::INT)
-RETURNS TABLE (new_invoice_number TEXT, new_sequence INT)
+-- Function to generate atomic invoice numbers: TT-IN-1001 (Starting from 1001)
+CREATE OR REPLACE FUNCTION public.generate_next_invoice_number(p_year INT DEFAULT NULL)
+RETURNS TABLE (new_sequence INT, new_invoice_number TEXT)
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
@@ -29,16 +29,16 @@ DECLARE
     v_seq INT;
     v_num TEXT;
 BEGIN
-    INSERT INTO public.invoice_number_sequences (year, last_sequence, updated_at)
-    VALUES (p_year, 1, NOW())
-    ON CONFLICT (year) DO UPDATE
-    SET last_sequence = public.invoice_number_sequences.last_sequence + 1,
-        updated_at = NOW()
-    RETURNING last_sequence INTO v_seq;
+    SELECT COALESCE(MAX(invoice_sequence), 1000) INTO v_seq FROM public.invoices;
 
-    v_num := 'TT-IN-' || p_year::TEXT || '-' || LPAD(v_seq::TEXT, 4, '0');
-    
-    RETURN QUERY SELECT v_num, v_seq;
+    IF v_seq < 1000 THEN
+        v_seq := 1000;
+    END IF;
+
+    v_seq := v_seq + 1;
+    v_num := 'TT-IN-' || v_seq::TEXT;
+
+    RETURN QUERY SELECT v_seq, v_num;
 END;
 $$;
 

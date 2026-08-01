@@ -182,14 +182,12 @@ export function InvoiceForm({
   useEffect(() => {
     let isMounted = true;
     if (!initialInvoice && !invoiceNumber) {
-      const year = new Date().getFullYear();
-      supabase.rpc('generate_next_invoice_number', { p_year: year }).then(({ data, error }) => {
+      supabase.rpc('generate_next_invoice_number').then(({ data, error }) => {
         if (isMounted) {
           if (!error && data && data.length > 0) {
             setInvoiceNumber(data[0].new_invoice_number);
           } else {
-            const rand = Math.floor(1000 + Math.random() * 9000);
-            setInvoiceNumber(`TT-IN-${year}-${rand}`);
+            setInvoiceNumber('TT-IN-1001');
           }
         }
       });
@@ -314,11 +312,12 @@ export function InvoiceForm({
     startTransition(async () => {
       try {
         const finalStatus = determineStatusOnSave(targetStatus);
+        const seqMatch = invoiceNumber.match(/\d+/);
+        const parsedSeq = seqMatch ? parseInt(seqMatch[0], 10) : 1001;
 
         const invoicePayload = {
           invoice_number: invoiceNumber,
-          invoice_year: new Date(invoiceDate).getFullYear() || new Date().getFullYear(),
-          invoice_sequence: 1,
+          invoice_sequence: parsedSeq,
           status: finalStatus,
           invoice_date: invoiceDate,
           due_date: dueDate,
@@ -432,9 +431,8 @@ export function InvoiceForm({
 
   const currentInvoicePreviewObject: Invoice = {
     id: initialInvoice?.id || 'preview-id',
-    invoice_number: invoiceNumber || 'TT-IN-2026-0001',
-    invoice_year: new Date().getFullYear(),
-    invoice_sequence: 1,
+    invoice_number: invoiceNumber || 'TT-IN-1001',
+    invoice_sequence: 1001,
     status,
     invoice_date: invoiceDate,
     due_date: dueDate,

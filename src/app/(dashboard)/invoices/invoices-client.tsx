@@ -94,21 +94,21 @@ export function InvoicesClient({
   const handleDuplicate = async (inv: Invoice) => {
     startTransition(async () => {
       try {
-        const year = new Date().getFullYear();
         const { data: seqData } = await supabase.rpc(
-          'generate_next_invoice_number',
-          { p_year: year }
+          'generate_next_invoice_number'
         );
 
         const newNumber =
-          seqData?.[0]?.new_invoice_number || `TT-IN-${year}-${Math.floor(1000 + Math.random() * 9000)}`;
+          seqData?.[0]?.new_invoice_number || 'TT-IN-1001';
+
+        const seqMatch = newNumber.match(/\d+/);
+        const parsedSeq = seqMatch ? parseInt(seqMatch[0], 10) : 1001;
 
         const newNet = inv.subtotal + (inv.tax_amount || 0) - (inv.discount || 0) - (inv.deduction || 0) - (inv.advance_payment || 0);
 
         const duplicatePayload = {
           invoice_number: newNumber,
-          invoice_year: year,
-          invoice_sequence: 1,
+          invoice_sequence: parsedSeq,
           status: 'Draft' as InvoiceStatus,
           invoice_date: new Date().toISOString().split('T')[0],
           due_date: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],

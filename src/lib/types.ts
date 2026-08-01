@@ -56,7 +56,7 @@ export interface PreparedBySnapshot {
 export interface Invoice {
   id: string;
   invoice_number: string;
-  invoice_year: number;
+  invoice_year?: number;
   invoice_sequence: number;
   status: InvoiceStatus;
   invoice_date: string;
