@@ -7,6 +7,7 @@ import { Invoice } from '@/lib/types';
 import { formatDate, formatLKR, getStatusBadgeStyle } from '@/lib/utils';
 import { downloadInvoicePdf } from '@/lib/pdf/generateInvoicePdf';
 import { PdfPreviewModal } from '@/components/pdf/PdfPreviewModal';
+import { Notification, NotificationState } from '@/components/ui/Notification';
 
 interface DashboardClientProps {
   initialInvoices: Invoice[];
@@ -15,6 +16,7 @@ interface DashboardClientProps {
 export function DashboardClient({ initialInvoices }: DashboardClientProps) {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [notification, setNotification] = useState<NotificationState | null>(null);
 
   const handlePreview = (inv: Invoice) => {
     setSelectedInvoice(inv);
@@ -22,11 +24,16 @@ export function DashboardClient({ initialInvoices }: DashboardClientProps) {
   };
 
   const handleDownload = (inv: Invoice) => {
-    downloadInvoicePdf(inv);
+    try {
+      downloadInvoicePdf(inv);
+    } catch {
+      setNotification({ type: 'error', message: 'Unable to download PDF invoice.' });
+    }
   };
 
   return (
     <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl overflow-hidden shadow-xl">
+      <Notification notification={notification} onClose={() => setNotification(null)} />
       <div className="p-5 border-b border-zinc-850 flex items-center justify-between">
         <div>
           <h2 className="text-sm font-bold text-white">Recent Invoices</h2>
@@ -142,6 +149,7 @@ export function DashboardClient({ initialInvoices }: DashboardClientProps) {
         isOpen={isPreviewOpen}
         onClose={() => setIsPreviewOpen(false)}
         invoice={selectedInvoice}
+        onError={(msg) => setNotification({ type: 'error', message: msg })}
       />
     </div>
   );

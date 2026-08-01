@@ -523,6 +523,7 @@ export function InvoicesClient({
         isOpen={isPreviewOpen}
         onClose={() => setIsPreviewOpen(false)}
         invoice={selectedInvoice}
+        onError={(msg) => setNotification({ type: 'error', message: msg })}
       />
     </div>
   );

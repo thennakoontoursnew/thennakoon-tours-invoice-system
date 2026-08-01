@@ -1256,6 +1256,7 @@ export function InvoiceForm({
         isOpen={isPreviewOpen}
         onClose={() => setIsPreviewOpen(false)}
         invoice={currentInvoicePreviewObject}
+        onError={(msg) => setNotification({ type: 'error', message: msg })}
       />
     </div>
   );

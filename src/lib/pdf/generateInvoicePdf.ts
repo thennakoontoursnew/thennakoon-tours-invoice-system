@@ -472,7 +472,19 @@ export async function downloadInvoicePdf(invoice: Invoice): Promise<void> {
   doc.save(filename);
 }
 
-export async function getInvoicePdfDataUrl(invoice: Invoice): Promise<string> {
+export async function getInvoicePdfBlobUrl(invoice: Invoice): Promise<{ url: string; blob: Blob }> {
   const doc = await createInvoicePdfDoc(invoice);
-  return doc.output('datauristring');
+  const blob = doc.output('blob');
+  const url = URL.createObjectURL(blob);
+  return { url, blob };
+}
+
+export async function getInvoicePdfDataUrl(invoice: Invoice): Promise<string> {
+  const { url } = await getInvoicePdfBlobUrl(invoice);
+  return url;
+}
+
+export async function previewInvoicePdfInNewTab(invoice: Invoice): Promise<void> {
+  const { url } = await getInvoicePdfBlobUrl(invoice);
+  window.open(url, '_blank', 'noopener,noreferrer');
 }
