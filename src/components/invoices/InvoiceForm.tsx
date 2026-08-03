@@ -194,7 +194,7 @@ export function InvoiceForm({
           if (!error && data && data.length > 0) {
             setInvoiceNumber(data[0].new_invoice_number);
           } else {
-            setInvoiceNumber('TT-IN-1001');
+            setInvoiceNumber('TT-IN-10001');
           }
         }
       });
@@ -350,7 +350,7 @@ export function InvoiceForm({
       try {
         const finalStatus = determineStatusOnSave(targetStatus);
         const seqMatch = invoiceNumber.match(/\d+/);
-        const parsedSeq = seqMatch ? parseInt(seqMatch[0], 10) : 1001;
+        const parsedSeq = seqMatch ? parseInt(seqMatch[0], 10) : 10001;
 
         const validDeductionItems = deductionItems.filter(
           (d) => d.description.trim() !== '' || d.amount > 0
@@ -473,8 +473,8 @@ export function InvoiceForm({
 
   const currentInvoicePreviewObject: Invoice = {
     id: initialInvoice?.id || 'preview-id',
-    invoice_number: invoiceNumber || 'TT-IN-1001',
-    invoice_sequence: 1001,
+    invoice_number: invoiceNumber || 'TT-IN-10001',
+    invoice_sequence: 10001,
     status,
     invoice_date: invoiceDate,
     due_date: dueDate,

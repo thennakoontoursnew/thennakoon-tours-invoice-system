@@ -99,10 +99,10 @@ export function InvoicesClient({
         );
 
         const newNumber =
-          seqData?.[0]?.new_invoice_number || 'TT-IN-1001';
+          seqData?.[0]?.new_invoice_number || 'TT-IN-10001';
 
         const seqMatch = newNumber.match(/\d+/);
-        const parsedSeq = seqMatch ? parseInt(seqMatch[0], 10) : 1001;
+        const parsedSeq = seqMatch ? parseInt(seqMatch[0], 10) : 10001;
 
         const newNet = inv.subtotal + (inv.tax_amount || 0) - (inv.discount || 0) - (inv.deduction || 0) - (inv.advance_payment || 0);
 

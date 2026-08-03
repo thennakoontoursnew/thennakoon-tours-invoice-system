@@ -101,7 +101,7 @@ export async function createInvoicePdfDoc(invoice: Invoice): Promise<jsPDF> {
   doc.setTextColor(70, 70, 70);
   doc.text(`Invoice Date: ${formatDate(invoice.invoice_date)}`, headerX, currentY + 6);
 
-  // Right: INVOICE NO: + TT-IN-1001 (No Status)
+  // Right: INVOICE NO: + TT-IN-10001 (No Status)
   doc.setFontSize(8.5);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(100, 100, 100);
@@ -110,7 +110,7 @@ export async function createInvoicePdfDoc(invoice: Invoice): Promise<jsPDF> {
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(20, 20, 20);
-  doc.text(invoice.invoice_number || 'TT-IN-1001', pageWidth - marginX, currentY + 6, { align: 'right' });
+  doc.text(invoice.invoice_number || 'TT-IN-10001', pageWidth - marginX, currentY + 6, { align: 'right' });
 
   currentY += 15;
 
@@ -462,7 +462,7 @@ export async function createInvoicePdfDoc(invoice: Invoice): Promise<jsPDF> {
 export function formatInvoicePdfFilename(invoice: Invoice): string {
   const sanitize = (str: string) => str.replace(/[^a-zA-Z0-9_-]/g, '-');
   const cust = sanitize(invoice.customer_name || 'Customer');
-  const num = sanitize(invoice.invoice_number || 'TT-IN-1001');
+  const num = sanitize(invoice.invoice_number || 'TT-IN-10001');
   return `TT-Invoice-${num}-${cust}.pdf`;
 }
 

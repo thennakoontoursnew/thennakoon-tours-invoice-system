@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS public.invoice_number_sequences (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Function to generate atomic invoice numbers: TT-IN-1001 (Starting from 1001)
+-- Function to generate atomic invoice numbers: TT-IN-10001 (Starting from 10001)
 CREATE OR REPLACE FUNCTION public.generate_next_invoice_number(p_year INT DEFAULT NULL)
 RETURNS TABLE (new_sequence INT, new_invoice_number TEXT)
 LANGUAGE plpgsql
@@ -29,14 +29,8 @@ DECLARE
     v_seq INT;
     v_num TEXT;
 BEGIN
-    SELECT COALESCE(MAX(invoice_sequence), 1000) INTO v_seq FROM public.invoices;
-
-    IF v_seq < 1000 THEN
-        v_seq := 1000;
-    END IF;
-
-    v_seq := v_seq + 1;
-    v_num := 'TT-IN-' || v_seq::TEXT;
+    SELECT GREATEST(10001, COALESCE(MAX(invoice_sequence), 0) + 1) INTO v_seq FROM public.invoices;
+    v_num := 'TT-IN-' || LPAD(v_seq::TEXT, 5, '0');
 
     RETURN QUERY SELECT v_seq, v_num;
 END;
