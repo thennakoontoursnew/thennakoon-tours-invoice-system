@@ -287,3 +287,7 @@ CREATE POLICY "Manage qr_settings" ON public.qr_settings FOR ALL TO authenticate
 -- Logs Policies:
 CREATE POLICY "Read logs" ON public.invoice_activity_logs FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Insert logs" ON public.invoice_activity_logs FOR INSERT TO authenticated WITH CHECK (true);
+
+-- Reports Performance Indexes:
+CREATE INDEX IF NOT EXISTS idx_invoices_invoice_date ON public.invoices(invoice_date);
+CREATE INDEX IF NOT EXISTS idx_invoices_status_date ON public.invoices(status, invoice_date);

@@ -11,6 +11,7 @@ import {
   Users,
   LogOut,
   Car,
+  BarChart3,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Profile } from '@/lib/types';
@@ -33,16 +34,21 @@ export function Sidebar({ profile }: SidebarProps) {
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { label: 'New Invoice', href: '/invoices/new', icon: FilePlus2 },
     { label: 'Invoices', href: '/invoices', icon: Receipt },
-    { label: 'Settings', href: '/settings', icon: Settings },
   ];
 
   const role = profile?.role?.trim().toLowerCase();
+  if (role === 'owner' || role === 'admin') {
+    navItems.push({ label: 'Reports', href: '/reports', icon: BarChart3 });
+  }
+
+  navItems.push({ label: 'Settings', href: '/settings', icon: Settings });
+
   if (role === 'owner') {
     navItems.push({ label: 'Users', href: '/users', icon: Users });
   }
 
   return (
-    <aside className="w-64 bg-zinc-950 border-r border-zinc-850 flex flex-col h-screen sticky top-0 shrink-0 select-none">
+    <aside className="w-64 bg-zinc-950 border-r border-zinc-850 flex flex-col h-screen sticky top-0 shrink-0 select-none print:hidden">
       {/* Brand Logo & Title */}
       <div className="p-5 border-b border-zinc-850 flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold shadow-inner">

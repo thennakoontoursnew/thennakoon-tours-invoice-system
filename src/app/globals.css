@@ -64,3 +64,18 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 ::-webkit-scrollbar-thumb:hover {
   background: #3f3f46;
 }
+
+/* Print Media Styles */
+@media print {
+  @page {
+    margin: 12mm;
+    size: portrait;
+  }
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+  .print\:hidden {
+    display: none !important;
+  }
+}
