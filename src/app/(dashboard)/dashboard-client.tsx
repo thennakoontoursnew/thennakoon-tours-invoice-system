@@ -49,7 +49,8 @@ export function DashboardClient({ initialInvoices }: DashboardClientProps) {
         </Link>
       </div>
 
-      <div className="overflow-x-auto">
+      {/* DESKTOP TABLE VIEW (Hidden on mobile) */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-left text-xs text-zinc-300">
           <thead className="bg-zinc-950/80 text-zinc-400 font-semibold border-b border-zinc-850">
             <tr>
@@ -118,21 +119,21 @@ export function DashboardClient({ initialInvoices }: DashboardClientProps) {
                       <button
                         onClick={() => handlePreview(inv)}
                         title="Preview PDF"
-                        className="p-1.5 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+                        className="p-2 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
                       >
                         <Eye className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDownload(inv)}
                         title="Download PDF"
-                        className="p-1.5 rounded-md hover:bg-zinc-800 text-amber-400 hover:text-amber-300 transition-colors"
+                        className="p-2 rounded-md hover:bg-zinc-800 text-amber-400 hover:text-amber-300 transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
                       >
                         <Download className="w-4 h-4" />
                       </button>
                       <Link
                         href={`/invoices/${inv.id}`}
                         title="Edit Invoice"
-                        className="p-1.5 rounded-md hover:bg-zinc-800 text-blue-400 hover:text-blue-300 transition-colors"
+                        className="p-2 rounded-md hover:bg-zinc-800 text-blue-400 hover:text-blue-300 transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
                       >
                         <Edit className="w-4 h-4" />
                       </Link>
@@ -143,6 +144,72 @@ export function DashboardClient({ initialInvoices }: DashboardClientProps) {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* MOBILE INVOICE CARD VIEW (Shown only on mobile) */}
+      <div className="md:hidden p-3 space-y-3">
+        {initialInvoices.length === 0 ? (
+          <div className="p-6 text-center text-zinc-500 text-xs">
+            No invoices created yet.
+          </div>
+        ) : (
+          initialInvoices.map((inv) => (
+            <div
+              key={inv.id}
+              className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-850 space-y-3 shadow-md"
+            >
+              <div className="flex items-center justify-between border-b border-zinc-850 pb-2">
+                <div>
+                  <span className="font-bold text-amber-400 font-mono text-xs">
+                    {inv.invoice_number}
+                  </span>
+                  <p className="text-[10px] text-zinc-400">{formatDate(inv.invoice_date)}</p>
+                </div>
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getStatusBadgeStyle(
+                    inv.status
+                  )}`}
+                >
+                  {inv.status}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-zinc-500">Customer</p>
+                  <p className="font-semibold text-zinc-100 truncate">{inv.customer_name}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-zinc-500">Balance Due</p>
+                  <p className="font-bold text-amber-400 font-mono">{formatLKR(inv.balance_due)}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-1 border-t border-zinc-850">
+                <button
+                  onClick={() => handlePreview(inv)}
+                  className="flex items-center gap-1 px-3 py-2 rounded-lg bg-zinc-800 text-zinc-200 text-xs font-semibold hover:bg-zinc-700 min-h-[44px]"
+                >
+                  <Eye className="w-4 h-4 text-amber-400" />
+                  <span>Preview</span>
+                </button>
+                <button
+                  onClick={() => handleDownload(inv)}
+                  className="flex items-center gap-1 px-3 py-2 rounded-lg bg-zinc-800 text-amber-400 text-xs font-semibold hover:bg-zinc-700 min-h-[44px]"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download</span>
+                </button>
+                <Link
+                  href={`/invoices/${inv.id}`}
+                  className="p-2.5 rounded-lg bg-zinc-800 text-blue-400 hover:bg-zinc-700 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                >
+                  <Edit className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       <PdfPreviewModal

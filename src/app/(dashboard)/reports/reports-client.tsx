@@ -388,7 +388,7 @@ export function ReportsClient({ currentProfile }: ReportsClientProps) {
         </div>
       </div>
 
-      {/* MONTHLY INVOICE TABLE */}
+      {/* MONTHLY INVOICE STATEMENT (DESKTOP TABLE VIEW) */}
       <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl overflow-hidden shadow-xl">
         <div className="p-4 border-b border-zinc-800 bg-zinc-950/60 flex items-center justify-between">
           <h2 className="text-xs font-bold text-zinc-200 uppercase tracking-wider">
@@ -399,7 +399,8 @@ export function ReportsClient({ currentProfile }: ReportsClientProps) {
           </span>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs text-zinc-300">
             <thead className="bg-zinc-950/80 text-zinc-400 uppercase text-[10px] font-bold tracking-wider border-b border-zinc-800">
               <tr>
@@ -427,9 +428,6 @@ export function ReportsClient({ currentProfile }: ReportsClientProps) {
                   <td colSpan={9} className="py-12 text-center text-zinc-500">
                     <HelpCircle className="w-8 h-8 mx-auto text-zinc-600 mb-2" />
                     <p className="text-xs font-semibold text-zinc-400">No invoices found for this month.</p>
-                    <p className="text-[11px] text-zinc-500 mt-0.5">
-                      Try selecting a different month, year, or clearing the search filter.
-                    </p>
                   </td>
                 </tr>
               ) : (
@@ -479,6 +477,62 @@ export function ReportsClient({ currentProfile }: ReportsClientProps) {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="md:hidden p-3 space-y-3">
+          {isPending ? (
+            <div className="py-8 text-center text-zinc-400">
+              <Loader2 className="w-5 h-5 animate-spin mx-auto text-amber-400 mb-1" />
+              <p className="text-xs">Loading records...</p>
+            </div>
+          ) : filteredInvoices.length === 0 ? (
+            <div className="p-6 text-center text-zinc-500 text-xs">
+              No invoices found for this month.
+            </div>
+          ) : (
+            filteredInvoices.map((inv) => (
+              <div
+                key={inv.id}
+                className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-850 space-y-2.5 shadow-md"
+              >
+                <div className="flex items-center justify-between border-b border-zinc-850 pb-2">
+                  <div>
+                    <span className="font-bold text-amber-400 font-mono text-xs">
+                      {inv.invoice_number}
+                    </span>
+                    <p className="text-[10px] text-zinc-400">{formatDate(inv.invoice_date)}</p>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${getStatusBadgeStyle(inv.status)}`}>
+                    {inv.status}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-zinc-500">Customer</p>
+                    <p className="font-semibold text-zinc-100 truncate">{inv.customer_name || 'N/A'}</p>
+                    {inv.customer_phone && <p className="text-[10px] text-zinc-400 font-mono">{inv.customer_phone}</p>}
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-zinc-500">Vehicle</p>
+                    <p className="text-zinc-300 truncate">{inv.vehicle_name || inv.vehicle_registration_number || '-'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-2 rounded-lg bg-zinc-900 border border-zinc-850 text-xs">
+                  <div>
+                    <span className="text-[10px] text-zinc-500">Net Amount:</span>
+                    <p className="font-semibold text-zinc-200 font-mono">{formatLKR(inv.net_amount || 0)}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-zinc-500">Balance Due:</span>
+                    <p className="font-bold text-red-400 font-mono">{formatLKR(inv.balance_due || 0)}</p>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

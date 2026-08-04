@@ -346,8 +346,8 @@ export function InvoicesClient({
         )}
       </div>
 
-      {/* Invoice Records Table */}
-      <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl overflow-hidden shadow-xl">
+      {/* DESKTOP INVOICE TABLE (Hidden on mobile) */}
+      <div className="hidden md:block bg-zinc-900/90 border border-zinc-800 rounded-xl overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-zinc-300">
             <thead className="bg-zinc-950/80 text-zinc-400 font-semibold border-b border-zinc-850">
@@ -455,7 +455,7 @@ export function InvoicesClient({
                           <button
                             onClick={() => handlePreview(inv)}
                             title="Preview PDF"
-                            className="p-1.5 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+                            className="p-2 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
@@ -463,7 +463,7 @@ export function InvoicesClient({
                           <button
                             onClick={() => handleDownload(inv)}
                             title="Download PDF"
-                            className="p-1.5 rounded-md hover:bg-zinc-800 text-amber-400 hover:text-amber-300 transition-colors"
+                            className="p-2 rounded-md hover:bg-zinc-800 text-amber-400 hover:text-amber-300 transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
                           >
                             <Download className="w-4 h-4" />
                           </button>
@@ -471,7 +471,7 @@ export function InvoicesClient({
                           <button
                             onClick={() => handleDuplicate(inv)}
                             title="Duplicate Invoice"
-                            className="p-1.5 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+                            className="p-2 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
                           >
                             <Copy className="w-4 h-4" />
                           </button>
@@ -480,14 +480,14 @@ export function InvoicesClient({
                             <Link
                               href={`/invoices/${inv.id}`}
                               title="Edit Invoice"
-                              className="p-1.5 rounded-md hover:bg-zinc-800 text-blue-400 hover:text-blue-300 transition-colors"
+                              className="p-2 rounded-md hover:bg-zinc-800 text-blue-400 hover:text-blue-300 transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
                             >
                               <Edit className="w-4 h-4" />
                             </Link>
                           ) : (
                             <span
                               title="Paid / Finalized Invoices are locked for Staff"
-                              className="p-1.5 text-zinc-600 cursor-not-allowed"
+                              className="p-2 text-zinc-600 cursor-not-allowed min-h-[36px] min-w-[36px] flex items-center justify-center"
                             >
                               <Lock className="w-4 h-4" />
                             </span>
@@ -501,7 +501,7 @@ export function InvoicesClient({
                               title={
                                 inv.archived_at ? 'Restore Invoice' : 'Archive Invoice'
                               }
-                              className="p-1.5 rounded-md hover:bg-zinc-800 text-zinc-500 hover:text-amber-400 transition-colors"
+                              className="p-2 rounded-md hover:bg-zinc-800 text-zinc-500 hover:text-amber-400 transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
                             >
                               {inv.archived_at ? (
                                 <RotateCcw className="w-4 h-4 text-amber-400" />
@@ -519,6 +519,139 @@ export function InvoicesClient({
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* MOBILE INVOICE CARD VIEW (Shown only on mobile screens) */}
+      <div className="md:hidden space-y-3">
+        {filteredInvoices.length === 0 ? (
+          <div className="p-8 text-center bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-500 text-xs">
+            No matching invoice records found.
+          </div>
+        ) : (
+          filteredInvoices.map((inv) => {
+            const canStaffEdit = role === 'staff' && inv.status === 'Draft';
+            const canEdit = isOwnerOrAdmin || canStaffEdit;
+
+            return (
+              <div
+                key={inv.id}
+                className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 space-y-3 shadow-lg"
+              >
+                <div className="flex items-center justify-between border-b border-zinc-850 pb-2.5">
+                  <div>
+                    <span className="font-bold text-amber-400 font-mono text-sm">
+                      {inv.invoice_number}
+                    </span>
+                    <p className="text-[11px] text-zinc-400 mt-0.5">
+                      Inv: {formatDate(inv.invoice_date)} | Due: {formatDate(inv.due_date)}
+                    </p>
+                  </div>
+
+                  {isOwnerOrAdmin ? (
+                    <select
+                      value={inv.status}
+                      onChange={(e) =>
+                        handleChangeStatus(inv, e.target.value as InvoiceStatus)
+                      }
+                      className={`px-2 py-1 rounded text-[10px] font-semibold border bg-zinc-950 focus:outline-none min-h-[36px] ${getStatusBadgeStyle(
+                        inv.status
+                      )}`}
+                    >
+                      <option value="Draft">Draft</option>
+                      <option value="Issued">Issued</option>
+                      <option value="Partially Paid">Partially Paid</option>
+                      <option value="Paid">Paid</option>
+                      <option value="Overdue">Overdue</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  ) : (
+                    <span
+                      className={`px-2.5 py-1 rounded-full text-[10px] font-semibold border ${getStatusBadgeStyle(
+                        inv.status
+                      )}`}
+                    >
+                      {inv.status}
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-zinc-500">Customer</p>
+                    <p className="font-semibold text-zinc-100 truncate">{inv.customer_name}</p>
+                    {inv.customer_phone && (
+                      <p className="text-[11px] text-zinc-400 font-mono">{inv.customer_phone}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-zinc-500">Vehicle / Rental</p>
+                    <p className="text-zinc-200 truncate">
+                      {inv.vehicle_name || inv.nature_of_invoice || 'Rental'}
+                    </p>
+                    {inv.vehicle_registration_number && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 font-mono">
+                        {inv.vehicle_registration_number}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-zinc-950 border border-zinc-850 text-xs">
+                  <div>
+                    <span className="text-[10px] text-zinc-500">Net Amount:</span>
+                    <p className="font-semibold text-zinc-200 font-mono">{formatLKR(inv.net_amount)}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-zinc-500">Balance Due:</span>
+                    <p className="font-bold text-amber-400 font-mono">{formatLKR(inv.balance_due)}</p>
+                  </div>
+                </div>
+
+                {/* Mobile Action Buttons with >=44px touch targets */}
+                <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-zinc-850">
+                  <button
+                    onClick={() => handlePreview(inv)}
+                    className="flex-1 flex items-center justify-center gap-1 py-2.5 rounded-lg bg-zinc-800 text-zinc-200 text-xs font-semibold hover:bg-zinc-700 min-h-[44px]"
+                  >
+                    <Eye className="w-4 h-4 text-amber-400" />
+                    <span>Preview</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleDownload(inv)}
+                    className="flex-1 flex items-center justify-center gap-1 py-2.5 rounded-lg bg-zinc-800 text-amber-400 text-xs font-semibold hover:bg-zinc-700 min-h-[44px]"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleDuplicate(inv)}
+                    className="p-2.5 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                    title="Duplicate"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+
+                  {canEdit ? (
+                    <Link
+                      href={`/invoices/${inv.id}`}
+                      className="p-2.5 rounded-lg bg-zinc-800 text-blue-400 hover:bg-zinc-700 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      title="Edit"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Link>
+                  ) : (
+                    <span className="p-2.5 text-zinc-600 min-h-[44px] min-w-[44px] flex items-center justify-center">
+                      <Lock className="w-4 h-4" />
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       <PdfPreviewModal

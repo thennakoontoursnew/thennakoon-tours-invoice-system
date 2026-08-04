@@ -203,7 +203,8 @@ export function UsersClient({
           </span>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* DESKTOP USER TABLE (Hidden on mobile) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs text-zinc-300">
             <thead className="bg-zinc-950/80 text-zinc-400 uppercase text-[10px] font-bold tracking-wider border-b border-zinc-800">
               <tr>
@@ -252,18 +253,12 @@ export function UsersClient({
                       ) : (
                         <span className="inline-flex items-center gap-1 text-red-400 text-[10px] font-semibold">
                           <XCircle className="w-3.5 h-3.5" />
-                          <span>Disabled</span>
+                          <span>Inactive</span>
                         </span>
                       )}
                     </td>
                     <td className="py-3.5 px-4 text-right">
                       <button
-                        onClick={() => {
-                          setEditingProfile(p);
-                          setEditRole((p.role?.trim().toLowerCase() === 'owner' ? 'Owner' : p.role?.trim().toLowerCase() === 'admin' ? 'Admin' : 'Staff') as UserRole);
-                          setEditDesignation(p.designation || 'Executive');
-                          setEditIsActive(p.is_active !== false);
-                        }}
                         className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-amber-400 border border-zinc-700 transition-colors"
                         title="Edit Role & Status"
                       >

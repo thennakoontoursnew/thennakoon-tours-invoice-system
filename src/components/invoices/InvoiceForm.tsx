@@ -14,7 +14,7 @@ import {
   User,
   Car,
   Calculator,
-  FileCheck,
+  CheckCircle2,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -539,11 +539,11 @@ export function InvoiceForm({
           </h1>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
           <button
             type="button"
             onClick={() => setIsPreviewOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-750 text-zinc-200 text-xs font-semibold border border-zinc-700 transition-colors"
+            className="flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-750 text-zinc-200 text-xs font-semibold border border-zinc-700 transition-colors min-h-[44px]"
           >
             <Eye className="w-4 h-4 text-amber-400" />
             <span>Preview PDF</span>
@@ -552,7 +552,7 @@ export function InvoiceForm({
           <button
             type="button"
             onClick={() => downloadInvoicePdf(currentInvoicePreviewObject)}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-750 text-amber-400 text-xs font-semibold border border-zinc-700 transition-colors"
+            className="flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-750 text-amber-400 text-xs font-semibold border border-zinc-700 transition-colors min-h-[44px]"
           >
             <Download className="w-4 h-4" />
             <span>Download</span>
@@ -564,22 +564,34 @@ export function InvoiceForm({
                 type="button"
                 disabled={isPending}
                 onClick={() => handleSaveInvoice('Draft')}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-700 hover:bg-zinc-600 text-white text-xs font-semibold transition-all disabled:opacity-50"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-zinc-700 hover:bg-zinc-600 text-white text-xs font-semibold transition-all disabled:opacity-50 min-h-[44px]"
               >
                 {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                <span>Save as Draft</span>
+                <span>Save Draft</span>
               </button>
 
               <button
                 type="button"
                 disabled={isPending}
-                onClick={() => handleSaveInvoice(status === 'Draft' ? 'Issued' : status)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs transition-all shadow-md active:scale-95 disabled:opacity-50"
+                onClick={() => handleSaveInvoice('Issued')}
+                className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition-all shadow-md active:scale-95 disabled:opacity-50 min-h-[44px]"
               >
-                {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileCheck className="w-4 h-4" />}
-                <span>Finalize & Issue</span>
+                {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                <span>{initialInvoice ? 'Save & Update' : 'Save & Issue'}</span>
               </button>
             </>
+          )}
+
+          {isDraftOnly && (
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => handleSaveInvoice('Draft')}
+              className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition-all shadow-md active:scale-95 disabled:opacity-50 min-h-[44px]"
+            >
+              {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              <span>Save Draft</span>
+            </button>
           )}
         </div>
       </div>
