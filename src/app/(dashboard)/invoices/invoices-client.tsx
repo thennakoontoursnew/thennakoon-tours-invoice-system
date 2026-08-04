@@ -312,7 +312,8 @@ export function InvoicesClient({
               type="date"
               value={startDateFilter}
               onChange={(e) => setStartDateFilter(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-amber-500"
+              onClick={(e) => e.currentTarget.showPicker?.()}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-amber-500 cursor-pointer [color-scheme:dark]"
             />
           </div>
 
@@ -322,7 +323,8 @@ export function InvoicesClient({
               type="date"
               value={endDateFilter}
               onChange={(e) => setEndDateFilter(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-amber-500"
+              onClick={(e) => e.currentTarget.showPicker?.()}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-amber-500 cursor-pointer [color-scheme:dark]"
             />
           </div>
         </div>

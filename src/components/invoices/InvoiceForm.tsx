@@ -633,7 +633,8 @@ export function InvoiceForm({
               type="date"
               value={invoiceDate}
               onChange={(e) => setInvoiceDate(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-amber-500"
+              onClick={(e) => e.currentTarget.showPicker?.()}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-amber-500 cursor-pointer [color-scheme:dark]"
             />
           </div>
 
@@ -645,7 +646,8 @@ export function InvoiceForm({
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-amber-500"
+              onClick={(e) => e.currentTarget.showPicker?.()}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-amber-500 cursor-pointer [color-scheme:dark]"
             />
           </div>
 
@@ -845,7 +847,8 @@ export function InvoiceForm({
               type="date"
               value={rentalStartDate}
               onChange={(e) => handleStartDateChange(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-amber-500"
+              onClick={(e) => e.currentTarget.showPicker?.()}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-amber-500 cursor-pointer [color-scheme:dark]"
             />
           </div>
 
@@ -857,7 +860,8 @@ export function InvoiceForm({
               type="date"
               value={rentalEndDate}
               onChange={(e) => handleEndDateChange(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-amber-500"
+              onClick={(e) => e.currentTarget.showPicker?.()}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-amber-500 cursor-pointer [color-scheme:dark]"
             />
           </div>
 

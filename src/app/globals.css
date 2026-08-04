@@ -32,6 +32,23 @@ body {
   overflow-x: hidden;
 }
 
+/* Native Date Picker Dark Theme & Gold Calendar Icon Styling */
+input[type="date"] {
+  color-scheme: dark;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(0.8) sepia(1) saturate(5) hue-rotate(5deg);
+  opacity: 0.85;
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+  filter: invert(0.95) sepia(1) saturate(8) hue-rotate(5deg);
+}
+
 /* Custom dark scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
