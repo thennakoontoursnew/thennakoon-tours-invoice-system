@@ -23,6 +23,8 @@ export interface InvoicePayment {
   reversed_by?: string | null;
   reversal_reason?: string | null;
   created_by?: string | null;
+  created_by_name?: string | null;
+  running_balance?: number | null;
   created_at: string;
   creator?: Profile | null;
 }

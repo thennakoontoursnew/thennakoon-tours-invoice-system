@@ -189,36 +189,6 @@ export function InvoicesClient({
     });
   };
 
-  const handleChangeStatus = async (inv: Invoice, newStatus: InvoiceStatus) => {
-    startTransition(async () => {
-      try {
-        const { error } = await supabase
-          .from('invoices')
-          .update({ status: newStatus, updated_by: currentProfile.id })
-          .eq('id', inv.id);
-
-        if (error) throw error;
-
-        setInvoices(
-          invoices.map((item) =>
-            item.id === inv.id ? { ...item, status: newStatus } : item
-          )
-        );
-
-        setNotification({
-          type: 'success',
-          message: `Status updated to ${newStatus}.`,
-        });
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Failed to update status.';
-        setNotification({
-          type: 'error',
-          message: msg,
-        });
-      }
-    });
-  };
-
   const handleToggleArchive = async (inv: Invoice, archive: boolean) => {
     startTransition(async () => {
       try {
@@ -425,32 +395,13 @@ export function InvoicesClient({
                       </td>
 
                       <td className="py-3.5 px-4 text-center">
-                        {isOwnerOrAdmin ? (
-                          <select
-                            value={inv.status}
-                            onChange={(e) =>
-                              handleChangeStatus(inv, e.target.value as InvoiceStatus)
-                            }
-                            className={`px-2 py-1 rounded text-[10px] font-semibold border bg-zinc-950 focus:outline-none ${getStatusBadgeStyle(
-                              inv.status
-                            )}`}
-                          >
-                            <option value="Draft">Draft</option>
-                            <option value="Issued">Issued</option>
-                            <option value="Partially Paid">Partially Paid</option>
-                            <option value="Paid">Paid</option>
-                            <option value="Overdue">Overdue</option>
-                            <option value="Cancelled">Cancelled</option>
-                          </select>
-                        ) : (
-                          <span
-                            className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-semibold border ${getStatusBadgeStyle(
-                              inv.status
-                            )}`}
-                          >
-                            {inv.status}
-                          </span>
-                        )}
+                        <span
+                          className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-semibold border ${getStatusBadgeStyle(
+                            inv.status
+                          )}`}
+                        >
+                          {inv.status}
+                        </span>
                       </td>
 
                       <td className="py-3.5 px-4 text-center">
@@ -560,32 +511,13 @@ export function InvoicesClient({
                     </p>
                   </div>
 
-                  {isOwnerOrAdmin ? (
-                    <select
-                      value={inv.status}
-                      onChange={(e) =>
-                        handleChangeStatus(inv, e.target.value as InvoiceStatus)
-                      }
-                      className={`px-2 py-1 rounded text-[10px] font-semibold border bg-zinc-950 focus:outline-none min-h-[36px] ${getStatusBadgeStyle(
-                        inv.status
-                      )}`}
-                    >
-                      <option value="Draft">Draft</option>
-                      <option value="Issued">Issued</option>
-                      <option value="Partially Paid">Partially Paid</option>
-                      <option value="Paid">Paid</option>
-                      <option value="Overdue">Overdue</option>
-                      <option value="Cancelled">Cancelled</option>
-                    </select>
-                  ) : (
-                    <span
-                      className={`px-2.5 py-1 rounded-full text-[10px] font-semibold border ${getStatusBadgeStyle(
-                        inv.status
-                      )}`}
-                    >
-                      {inv.status}
-                    </span>
-                  )}
+                  <span
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-semibold border ${getStatusBadgeStyle(
+                      inv.status
+                    )}`}
+                  >
+                    {inv.status}
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">

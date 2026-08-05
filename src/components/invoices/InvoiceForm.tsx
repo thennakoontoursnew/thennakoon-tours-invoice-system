@@ -28,7 +28,7 @@ import {
   QrSettings,
   InvoiceStatus,
 } from '@/lib/types';
-import { formatLKR } from '@/lib/utils';
+import { formatLKR, getStatusBadgeStyle } from '@/lib/utils';
 import { downloadInvoicePdf } from '@/lib/pdf/generateInvoicePdf';
 import { PdfPreviewModal } from '@/components/pdf/PdfPreviewModal';
 import { Notification, NotificationState } from '@/components/ui/Notification';
@@ -85,9 +85,7 @@ export function InvoiceForm({
   const [paymentTerms, setPaymentTerms] = useState<string>(
     initialInvoice?.payment_terms || invoiceSettings.default_payment_terms || '7 Days'
   );
-  const [status, setStatus] = useState<InvoiceStatus>(
-    initialInvoice?.status || 'Draft'
-  );
+  const status = initialInvoice?.status || 'Draft';
   const [quotationRef, setQuotationRef] = useState<string>(
     initialInvoice?.quotation_reference || ''
   );
@@ -162,7 +160,6 @@ export function InvoiceForm({
   );
   const [taxRate, setTaxRate] = useState<number>(invoiceSettings.default_tax_rate || 0);
   const [advancePayment, setAdvancePayment] = useState<number>(initialInvoice?.advance_payment || 0);
-  const [amountPaid, setAmountPaid] = useState<number>(initialInvoice?.amount_paid || 0);
 
   // Section 6: Notes
   const [specialNotes, setSpecialNotes] = useState<string>(
@@ -512,7 +509,7 @@ export function InvoiceForm({
     tax_amount: taxAmount,
     advance_payment: advancePayment,
     net_amount: calculatedNet,
-    amount_paid: amountPaid,
+    amount_paid: currentAmountPaid,
     balance_due: balanceDue,
     special_notes: specialNotes,
     important_notes: importantNotes,
@@ -691,20 +688,17 @@ export function InvoiceForm({
 
           <div>
             <label className="block text-xs font-medium text-zinc-400 mb-1">
-              Invoice Status
+              Invoice Status (Auto-Calculated)
             </label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as InvoiceStatus)}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs font-semibold text-amber-400 focus:outline-none focus:border-amber-500"
-            >
-              <option value="Draft">Draft</option>
-              <option value="Issued">Issued</option>
-              <option value="Partially Paid">Partially Paid</option>
-              <option value="Paid">Paid</option>
-              <option value="Overdue">Overdue</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
+            <div className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs flex items-center">
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${getStatusBadgeStyle(
+                  initialInvoice ? initialInvoice.status : (status || 'Draft')
+                )}`}
+              >
+                {initialInvoice ? initialInvoice.status : (status || 'Draft')}
+              </span>
+            </div>
           </div>
 
           <div>
@@ -1201,7 +1195,7 @@ export function InvoiceForm({
 
             <div className="flex justify-between text-xs text-zinc-400">
               <span>Amount Paid:</span>
-              <span className="font-semibold text-emerald-400">- {formatLKR(amountPaid)}</span>
+              <span className="font-semibold text-emerald-400">- {formatLKR(currentAmountPaid)}</span>
             </div>
 
             <div className="flex justify-between text-base font-black text-amber-400 bg-amber-500/10 p-3 rounded-lg border border-amber-500/30">

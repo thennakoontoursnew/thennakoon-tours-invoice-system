@@ -9,11 +9,13 @@ import {
   AlertTriangle,
   CheckCircle2,
   XCircle,
+  FileText,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Invoice, InvoicePayment, Profile } from '@/lib/types';
 import { formatDate, formatLKR } from '@/lib/utils';
 import { NotificationState } from '@/components/ui/Notification';
+import { PaymentReceiptModal } from '@/components/payments/PaymentReceiptModal';
 
 interface PaymentHistorySectionProps {
   invoice: Invoice;
@@ -37,6 +39,7 @@ export function PaymentHistorySection({
 
   // Reversal Modal State
   const [selectedPaymentForReversal, setSelectedPaymentForReversal] = useState<InvoicePayment | null>(null);
+  const [selectedPaymentForReceipt, setSelectedPaymentForReceipt] = useState<InvoicePayment | null>(null);
   const [reversalReason, setReversalReason] = useState<string>('');
 
   const role = currentProfile?.role?.trim().toLowerCase();
@@ -241,7 +244,7 @@ export function PaymentHistorySection({
                   <th className="py-3 px-4 text-right">Amount</th>
                   <th className="py-3 px-4">Notes</th>
                   <th className="py-3 px-4 text-center">Status</th>
-                  {isOwner && <th className="py-3 px-4 text-center">Actions</th>}
+                  <th className="py-3 px-4 text-center">Receipt & Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-850/60 bg-zinc-950/40">
@@ -276,25 +279,31 @@ export function PaymentHistorySection({
                         </span>
                       )}
                     </td>
-                    {isOwner && (
-                      <td className="py-3 px-4 text-center">
-                        {!pay.is_reversed ? (
+                    <td className="py-3 px-4 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPaymentForReceipt(pay)}
+                          className="px-2 py-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-amber-400 border border-zinc-700 text-[11px] font-semibold transition-colors flex items-center gap-1 min-h-[32px]"
+                          title="View / Download Payment Receipt"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          <span>Receipt</span>
+                        </button>
+
+                        {isOwner && !pay.is_reversed && (
                           <button
                             type="button"
                             onClick={() => setSelectedPaymentForReversal(pay)}
-                            className="p-1.5 rounded-md hover:bg-red-950/60 text-red-400 hover:text-red-300 border border-red-900/40 text-[11px] font-semibold transition-colors flex items-center justify-center gap-1 mx-auto min-h-[36px]"
+                            className="p-1.5 rounded-md hover:bg-red-950/60 text-red-400 hover:text-red-300 border border-red-900/40 text-[11px] font-semibold transition-colors flex items-center gap-1 min-h-[32px]"
                             title="Reverse Payment (Owner Only)"
                           >
                             <RotateCcw className="w-3.5 h-3.5" />
                             <span>Reverse</span>
                           </button>
-                        ) : (
-                          <span className="text-[10px] text-zinc-500 font-mono" title={pay.reversal_reason || 'Reversed'}>
-                            {pay.reversal_reason ? `Reason: ${pay.reversal_reason}` : 'Reversed'}
-                          </span>
                         )}
-                      </td>
-                    )}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -346,18 +355,27 @@ export function PaymentHistorySection({
                   </p>
                 )}
 
-                {isOwner && !pay.is_reversed && (
-                  <div className="pt-2 border-t border-zinc-850 flex justify-end">
+                <div className="pt-2 border-t border-zinc-850 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPaymentForReceipt(pay)}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-amber-400 border border-zinc-700 text-xs font-semibold min-h-[44px]"
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span>Receipt PDF</span>
+                  </button>
+
+                  {isOwner && !pay.is_reversed && (
                     <button
                       type="button"
                       onClick={() => setSelectedPaymentForReversal(pay)}
-                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-red-950/60 hover:bg-red-900/60 text-red-400 border border-red-900/40 text-xs font-semibold min-h-[44px]"
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-red-950/60 hover:bg-red-900/60 text-red-400 border border-red-900/40 text-xs font-semibold min-h-[44px]"
                     >
                       <RotateCcw className="w-4 h-4" />
-                      <span>Reverse Payment</span>
+                      <span>Reverse</span>
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -421,6 +439,14 @@ export function PaymentHistorySection({
           </div>
         </div>
       )}
+
+      <PaymentReceiptModal
+        isOpen={!!selectedPaymentForReceipt}
+        onClose={() => setSelectedPaymentForReceipt(null)}
+        invoice={invoice}
+        payment={selectedPaymentForReceipt}
+        onError={(msg) => setNotification({ type: 'error', message: msg })}
+      />
     </div>
   );
 }
