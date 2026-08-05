@@ -32,6 +32,8 @@ import { formatLKR } from '@/lib/utils';
 import { downloadInvoicePdf } from '@/lib/pdf/generateInvoicePdf';
 import { PdfPreviewModal } from '@/components/pdf/PdfPreviewModal';
 import { Notification, NotificationState } from '@/components/ui/Notification';
+import { AddPaymentModal } from '@/components/payments/AddPaymentModal';
+import { PaymentHistorySection } from '@/components/payments/PaymentHistorySection';
 
 interface InvoiceFormProps {
   initialInvoice?: Invoice | null;
@@ -244,9 +246,6 @@ export function InvoiceForm({
     subtotal + taxAmount - (discount || 0) - totalDeductions - (advancePayment || 0)
   );
 
-  // Balance Due = Net Amount - Amount Paid
-  const balanceDue = Math.max(0, calculatedNet - (amountPaid || 0));
-
   // Deduction item operations
   const addDeductionItem = () => {
     setDeductionItems([...deductionItems, { description: '', amount: 0 }]);
@@ -313,13 +312,24 @@ export function InvoiceForm({
     setItems(items.filter((_, i) => i !== index));
   };
 
+  // Modal State for Add Payment
+  const [isAddPaymentOpen, setIsAddPaymentOpen] = useState(false);
+
+  // Amount paid comes from recorded payments or initial invoice paid amount
+  const currentAmountPaid = initialInvoice ? (initialInvoice.amount_paid || 0) : 0;
+  const balanceDue = Math.max(0, calculatedNet - currentAmountPaid);
+
   // Status auto-determinator for finalized invoices
-  const determineStatusOnSave = (currentStatus: InvoiceStatus): InvoiceStatus => {
-    if (currentStatus === 'Cancelled') return 'Cancelled';
-    if (currentStatus === 'Draft') return 'Draft';
+  const determineStatusOnSave = (targetStatus: InvoiceStatus): InvoiceStatus => {
+    if (targetStatus === 'Cancelled') return 'Cancelled';
+    if (targetStatus === 'Draft') return 'Draft';
+
+    if (!initialInvoice) {
+      return 'Issued'; // New invoices default to Issued if not Draft
+    }
 
     if (balanceDue === 0) return 'Paid';
-    if ((amountPaid || 0) > 0 && balanceDue > 0) return 'Partially Paid';
+    if (currentAmountPaid > 0 && balanceDue > 0) return 'Partially Paid';
 
     if (new Date(dueDate).getTime() < new Date().getTime() && balanceDue > 0) {
       return 'Overdue';
@@ -389,7 +399,7 @@ export function InvoiceForm({
           tax_amount: taxAmount,
           advance_payment: advancePayment,
           net_amount: calculatedNet,
-          amount_paid: amountPaid,
+          amount_paid: currentAmountPaid,
           balance_due: balanceDue,
 
           special_notes: specialNotes,
@@ -1127,16 +1137,14 @@ export function InvoiceForm({
 
             <div>
               <label className="block text-xs font-medium text-zinc-400 mb-1">
-                Amount Paid (LKR)
+                Total Payments Collected (LKR)
               </label>
-              <input
-                type="number"
-                min={0}
-                max={calculatedNet}
-                value={amountPaid}
-                onChange={(e) => setAmountPaid(Math.min(calculatedNet, Math.max(0, Number(e.target.value) || 0)))}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-emerald-400 font-bold focus:outline-none focus:border-amber-500"
-              />
+              <div className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono font-bold text-emerald-400">
+                {formatLKR(currentAmountPaid)}
+              </div>
+              <p className="text-[10px] text-zinc-500 mt-1">
+                Recorded after invoice issuance via Add Payment action.
+              </p>
             </div>
           </div>
 
@@ -1268,12 +1276,34 @@ export function InvoiceForm({
         </div>
       </div>
 
+      {/* SECTION 8: PAYMENT HISTORY & REVERSALS (If editing existing invoice) */}
+      {initialInvoice && (
+        <PaymentHistorySection
+          invoice={initialInvoice}
+          currentProfile={currentProfile}
+          onOpenAddPayment={() => setIsAddPaymentOpen(true)}
+          onRefreshInvoice={() => router.refresh()}
+          setNotification={setNotification}
+        />
+      )}
+
       <PdfPreviewModal
         isOpen={isPreviewOpen}
         onClose={() => setIsPreviewOpen(false)}
         invoice={currentInvoicePreviewObject}
         onError={(msg) => setNotification({ type: 'error', message: msg })}
       />
+
+      {initialInvoice && (
+        <AddPaymentModal
+          isOpen={isAddPaymentOpen}
+          onClose={() => setIsAddPaymentOpen(false)}
+          invoice={initialInvoice}
+          currentProfile={currentProfile}
+          onPaymentAdded={() => router.refresh()}
+          setNotification={setNotification}
+        />
+      )}
     </div>
   );
 }

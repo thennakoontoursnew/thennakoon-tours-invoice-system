@@ -2,19 +2,24 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Eye, Download, Edit, ArrowRight } from 'lucide-react';
-import { Invoice } from '@/lib/types';
+import { useRouter } from 'next/navigation';
+import { Eye, Download, Edit, ArrowRight, DollarSign } from 'lucide-react';
+import { Invoice, Profile } from '@/lib/types';
 import { formatDate, formatLKR, getStatusBadgeStyle } from '@/lib/utils';
 import { downloadInvoicePdf } from '@/lib/pdf/generateInvoicePdf';
 import { PdfPreviewModal } from '@/components/pdf/PdfPreviewModal';
 import { Notification, NotificationState } from '@/components/ui/Notification';
+import { AddPaymentModal } from '@/components/payments/AddPaymentModal';
 
 interface DashboardClientProps {
   initialInvoices: Invoice[];
+  currentProfile?: Profile | null;
 }
 
-export function DashboardClient({ initialInvoices }: DashboardClientProps) {
+export function DashboardClient({ initialInvoices, currentProfile }: DashboardClientProps) {
+  const router = useRouter();
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [selectedPaymentInvoice, setSelectedPaymentInvoice] = useState<Invoice | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [notification, setNotification] = useState<NotificationState | null>(null);
 
@@ -116,6 +121,15 @@ export function DashboardClient({ initialInvoices }: DashboardClientProps) {
                   </td>
                   <td className="py-3 px-4 text-center">
                     <div className="flex items-center justify-center gap-1.5">
+                      {inv.status !== 'Draft' && inv.status !== 'Cancelled' && (inv.balance_due || 0) > 0 && currentProfile && (
+                        <button
+                          onClick={() => setSelectedPaymentInvoice(inv)}
+                          title="Add Payment"
+                          className="p-2 rounded-md hover:bg-zinc-800 text-emerald-400 hover:text-emerald-300 transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
+                        >
+                          <DollarSign className="w-4 h-4" />
+                        </button>
+                      )}
                       <button
                         onClick={() => handlePreview(inv)}
                         title="Preview PDF"
@@ -185,7 +199,16 @@ export function DashboardClient({ initialInvoices }: DashboardClientProps) {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-1 border-t border-zinc-850">
+              <div className="flex flex-wrap items-center justify-end gap-2 pt-1 border-t border-zinc-850">
+                {inv.status !== 'Draft' && inv.status !== 'Cancelled' && (inv.balance_due || 0) > 0 && currentProfile && (
+                  <button
+                    onClick={() => setSelectedPaymentInvoice(inv)}
+                    className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold transition-all min-h-[44px]"
+                  >
+                    <DollarSign className="w-4 h-4" />
+                    <span>Add Payment</span>
+                  </button>
+                )}
                 <button
                   onClick={() => handlePreview(inv)}
                   className="flex items-center gap-1 px-3 py-2 rounded-lg bg-zinc-800 text-zinc-200 text-xs font-semibold hover:bg-zinc-700 min-h-[44px]"
@@ -218,6 +241,17 @@ export function DashboardClient({ initialInvoices }: DashboardClientProps) {
         invoice={selectedInvoice}
         onError={(msg) => setNotification({ type: 'error', message: msg })}
       />
+
+      {currentProfile && (
+        <AddPaymentModal
+          isOpen={!!selectedPaymentInvoice}
+          onClose={() => setSelectedPaymentInvoice(null)}
+          invoice={selectedPaymentInvoice}
+          currentProfile={currentProfile}
+          onPaymentAdded={() => router.refresh()}
+          setNotification={(notif) => setNotification(notif)}
+        />
+      )}
     </div>
   );
 }

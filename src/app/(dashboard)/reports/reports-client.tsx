@@ -11,10 +11,6 @@ import {
   RotateCcw,
   Search,
   Loader2,
-  FileText,
-  DollarSign,
-  CheckCircle2,
-  AlertCircle,
   HelpCircle,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -39,6 +35,7 @@ export function ReportsClient({ currentProfile }: ReportsClientProps) {
   const [customerSearch, setCustomerSearch] = useState<string>('');
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [monthlyPayments, setMonthlyPayments] = useState<number>(0);
   const [notification, setNotification] = useState<NotificationState | null>(null);
 
   // Month names helper
@@ -59,7 +56,7 @@ export function ReportsClient({ currentProfile }: ReportsClientProps) {
 
   const years = [2024, 2025, 2026, 2027, 2028];
 
-  // Fetch Invoices for Selected Month Range
+  // Fetch Invoices and Monthly Collections for Selected Month Range
   const fetchMonthlyInvoices = useCallback(async () => {
     startTransition(async () => {
       try {
@@ -76,6 +73,7 @@ export function ReportsClient({ currentProfile }: ReportsClientProps) {
         const nextMonthStr = String(nextMonth).padStart(2, '0');
         const endDate = `${nextYear}-${nextMonthStr}-01`;
 
+        // Query invoices created in month
         let query = supabase
           .from('invoices')
           .select(
@@ -90,10 +88,23 @@ export function ReportsClient({ currentProfile }: ReportsClientProps) {
           query = query.eq('status', selectedStatus);
         }
 
-        const { data, error } = await query;
+        const [{ data: invData, error: invErr }, { data: payData, error: payErr }] = await Promise.all([
+          query,
+          supabase
+            .from('invoice_payments')
+            .select('amount')
+            .gte('payment_date', startDate)
+            .lt('payment_date', endDate)
+            .eq('is_reversed', false),
+        ]);
 
-        if (error) throw error;
-        setInvoices((data as Invoice[]) || []);
+        if (invErr) throw invErr;
+        if (payErr) console.error('Error fetching payments for report:', payErr);
+
+        setInvoices((invData as Invoice[]) || []);
+
+        const totalPaymentsInMonth = (payData || []).reduce((sum, p) => sum + (p.amount || 0), 0);
+        setMonthlyPayments(totalPaymentsInMonth);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'Failed to fetch report data.';
         setNotification({ type: 'error', message: msg });
@@ -126,8 +137,10 @@ export function ReportsClient({ currentProfile }: ReportsClientProps) {
   // Financial calculations excluding Cancelled and Archived
   const validFinancialInvoices = filteredInvoices.filter((i) => i.status !== 'Cancelled');
   const totalInvoiceValue = validFinancialInvoices.reduce((sum, i) => sum + (i.net_amount || 0), 0);
-  const totalAmountPaid = validFinancialInvoices.reduce((sum, i) => sum + (i.amount_paid || 0), 0);
+  const advancePaymentsReceived = validFinancialInvoices.reduce((sum, i) => sum + (i.advance_payment || 0), 0);
+  const totalCollected = advancePaymentsReceived + monthlyPayments;
   const totalOutstandingBalance = validFinancialInvoices.reduce((sum, i) => sum + (i.balance_due || 0), 0);
+  const collectionRate = totalInvoiceValue > 0 ? (totalCollected / totalInvoiceValue) * 100 : 0;
 
   // Counts by status
   const draftCount = filteredInvoices.filter((i) => i.status === 'Draft').length;
@@ -157,7 +170,7 @@ export function ReportsClient({ currentProfile }: ReportsClientProps) {
         <div className="flex flex-wrap items-center gap-2 print:hidden">
           <button
             type="button"
-            onClick={() => generateMonthlyInvoiceReportPdf(filteredInvoices, selectedYear, selectedMonth, currentProfile)}
+            onClick={() => generateMonthlyInvoiceReportPdf(filteredInvoices, selectedYear, selectedMonth, currentProfile, monthlyPayments)}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition-all shadow-md active:scale-95"
           >
             <Download className="w-4 h-4" />
@@ -298,59 +311,55 @@ export function ReportsClient({ currentProfile }: ReportsClientProps) {
       {/* 10 SUMMARY CARDS */}
       <div className="space-y-4">
         {/* Main Financial Totals (Row 1) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 shadow-md flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400">
-              <FileText className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase text-zinc-400 tracking-wider">
-                Total Invoices
-              </p>
-              <p className="text-lg font-extrabold text-white">{filteredInvoices.length}</p>
-            </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800 shadow-md">
+            <p className="text-[10px] font-bold uppercase text-zinc-400 tracking-wider">
+              Total Invoice Value
+            </p>
+            <p className="text-base font-extrabold text-amber-400 mt-1">
+              {formatLKR(totalInvoiceValue)}
+            </p>
+            <p className="text-[10px] text-zinc-500 mt-0.5">{filteredInvoices.length} invoices created</p>
           </div>
 
-          <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 shadow-md flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400">
-              <DollarSign className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase text-zinc-400 tracking-wider">
-                Total Invoice Value
-              </p>
-              <p className="text-base font-extrabold text-amber-400">
-                {formatLKR(totalInvoiceValue)}
-              </p>
-            </div>
+          <div className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800 shadow-md">
+            <p className="text-[10px] font-bold uppercase text-zinc-400 tracking-wider">
+              Payments in Month
+            </p>
+            <p className="text-base font-extrabold text-emerald-400 mt-1">
+              {formatLKR(monthlyPayments)}
+            </p>
+            <p className="text-[10px] text-zinc-500 mt-0.5">Collected during selected month</p>
           </div>
 
-          <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 shadow-md flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
-              <CheckCircle2 className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase text-zinc-400 tracking-wider">
-                Total Amount Paid
-              </p>
-              <p className="text-base font-extrabold text-emerald-400">
-                {formatLKR(totalAmountPaid)}
-              </p>
-            </div>
+          <div className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800 shadow-md">
+            <p className="text-[10px] font-bold uppercase text-zinc-400 tracking-wider">
+              Advance Payments
+            </p>
+            <p className="text-base font-extrabold text-blue-400 mt-1">
+              {formatLKR(advancePaymentsReceived)}
+            </p>
+            <p className="text-[10px] text-zinc-500 mt-0.5">Pre-issuance advance deposits</p>
           </div>
 
-          <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 shadow-md flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400">
-              <AlertCircle className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase text-zinc-400 tracking-wider">
-                Outstanding Balance
-              </p>
-              <p className="text-base font-extrabold text-red-400">
-                {formatLKR(totalOutstandingBalance)}
-              </p>
-            </div>
+          <div className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800 shadow-md">
+            <p className="text-[10px] font-bold uppercase text-zinc-400 tracking-wider">
+              Outstanding Balance
+            </p>
+            <p className="text-base font-extrabold text-red-400 mt-1">
+              {formatLKR(totalOutstandingBalance)}
+            </p>
+            <p className="text-[10px] text-zinc-500 mt-0.5">Current balance due</p>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800 shadow-md">
+            <p className="text-[10px] font-bold uppercase text-zinc-400 tracking-wider">
+              Collection Rate
+            </p>
+            <p className="text-base font-extrabold text-purple-400 mt-1">
+              {collectionRate.toFixed(1)}%
+            </p>
+            <p className="text-[10px] text-zinc-500 mt-0.5">Total Collected: {formatLKR(totalCollected)}</p>
           </div>
         </div>
 

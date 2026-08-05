@@ -325,11 +325,7 @@ export async function createInvoicePdfDoc(invoice: Invoice): Promise<jsPDF> {
   }
 
   addTotalRow('Net Amount', invoice.net_amount || 0, true);
-
-  if (invoice.amount_paid && invoice.amount_paid > 0) {
-    addTotalRow('Amount Paid', invoice.amount_paid, false, false, '- ');
-  }
-
+  addTotalRow('Amount Paid', invoice.amount_paid || 0, false, false, '- ');
   addTotalRow('BALANCE DUE', invoice.balance_due || 0, true, true);
 
   currentY = summaryY + 6;

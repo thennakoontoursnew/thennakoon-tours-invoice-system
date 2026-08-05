@@ -7,7 +7,8 @@ export function generateMonthlyInvoiceReportPdf(
   invoices: Invoice[],
   year: number,
   month: number,
-  profile?: Profile | null
+  profile?: Profile | null,
+  monthlyPaymentsCollected: number = 0
 ): void {
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -63,8 +64,10 @@ export function generateMonthlyInvoiceReportPdf(
   // 2. Compute Financial Totals (Excluding Cancelled and Archived)
   const validInvoices = invoices.filter((i) => i.status !== 'Cancelled');
   const totalValue = validInvoices.reduce((sum, i) => sum + (i.net_amount || 0), 0);
-  const totalPaid = validInvoices.reduce((sum, i) => sum + (i.amount_paid || 0), 0);
+  const advancePayments = validInvoices.reduce((sum, i) => sum + (i.advance_payment || 0), 0);
+  const totalCollected = advancePayments + monthlyPaymentsCollected;
   const totalOutstanding = validInvoices.reduce((sum, i) => sum + (i.balance_due || 0), 0);
+  const collectionRate = totalValue > 0 ? (totalCollected / totalValue) * 100 : 0;
 
   // Status Counts
   const draftCount = invoices.filter((i) => i.status === 'Draft').length;
@@ -74,19 +77,19 @@ export function generateMonthlyInvoiceReportPdf(
   const overdueCount = invoices.filter((i) => i.status === 'Overdue').length;
   const cancelledCount = invoices.filter((i) => i.status === 'Cancelled').length;
 
-  // Financial Summary Cards Box
+  // Financial Summary Cards Box (5 Columns)
   doc.setFillColor(245, 245, 247);
   doc.setDrawColor(220, 220, 225);
   doc.roundedRect(marginX, currentY, contentWidth, 22, 2, 2, 'FD');
 
-  const cardW = contentWidth / 4;
+  const cardW = contentWidth / 5;
   const drawSummaryCell = (title: string, val: string, x: number, isHighlight = false) => {
-    doc.setFontSize(7.5);
+    doc.setFontSize(7);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(100, 100, 100);
     doc.text(title.toUpperCase(), x + cardW / 2, currentY + 6, { align: 'center' });
 
-    doc.setFontSize(9.5);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     if (isHighlight) {
       doc.setTextColor(180, 120, 0); // Amber
@@ -96,10 +99,11 @@ export function generateMonthlyInvoiceReportPdf(
     doc.text(val, x + cardW / 2, currentY + 14, { align: 'center' });
   };
 
-  drawSummaryCell('Total Invoices', `${invoices.length}`, marginX);
-  drawSummaryCell('Total Value', formatLKR(totalValue), marginX + cardW);
-  drawSummaryCell('Total Amount Paid', formatLKR(totalPaid), marginX + cardW * 2);
+  drawSummaryCell('Total Value', formatLKR(totalValue), marginX);
+  drawSummaryCell('Month Payments', formatLKR(monthlyPaymentsCollected), marginX + cardW);
+  drawSummaryCell('Advances', formatLKR(advancePayments), marginX + cardW * 2);
   drawSummaryCell('Balance Due', formatLKR(totalOutstanding), marginX + cardW * 3, true);
+  drawSummaryCell('Collection Rate', `${collectionRate.toFixed(1)}%`, marginX + cardW * 4);
 
   currentY += 26;
 
@@ -169,8 +173,8 @@ export function generateMonthlyInvoiceReportPdf(
     didParseCell: (data) => {
       // Highlight Cancelled rows in light red background
       if (data.section === 'body' && data.row.cells[8]?.text[0] === 'Cancelled') {
-        data.cell.styles.fillColor = [254, 242, 242]; // Light red
-        data.cell.styles.textColor = [185, 28, 28]; // Dark red
+        data.cell.styles.fillColor = [254, 242, 242];
+        data.cell.styles.textColor = [185, 28, 28];
       }
     },
     didDrawPage: (data) => {

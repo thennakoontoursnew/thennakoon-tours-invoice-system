@@ -2,6 +2,31 @@ export type UserRole = 'Owner' | 'Admin' | 'Staff';
 
 export type InvoiceStatus = 'Draft' | 'Issued' | 'Partially Paid' | 'Paid' | 'Overdue' | 'Cancelled';
 
+export type PaymentMethod =
+  | 'Cash'
+  | 'Bank Transfer'
+  | 'Online Transfer'
+  | 'Card'
+  | 'Cheque'
+  | 'Other';
+
+export interface InvoicePayment {
+  id: string;
+  invoice_id: string;
+  payment_date: string;
+  amount: number;
+  payment_method: PaymentMethod;
+  reference_number?: string | null;
+  notes?: string | null;
+  is_reversed?: boolean;
+  reversed_at?: string | null;
+  reversed_by?: string | null;
+  reversal_reason?: string | null;
+  created_by?: string | null;
+  created_at: string;
+  creator?: Profile | null;
+}
+
 export interface Profile {
   id: string;
   email: string;
