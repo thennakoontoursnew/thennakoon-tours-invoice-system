@@ -2,9 +2,8 @@
 
 import React, { useState, useTransition } from 'react';
 import { AlertTriangle, X, Loader2, Ban } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { Invoice, Profile } from '@/lib/types';
-import { getStatusBadgeStyle } from '@/lib/utils';
+import { getStatusBadgeStyle, extractErrorMessage } from '@/lib/utils';
 
 interface CancelInvoiceModalProps {
   isOpen: boolean;
@@ -23,7 +22,6 @@ export function CancelInvoiceModal({
   onSuccess,
   onError,
 }: CancelInvoiceModalProps) {
-  const supabase = createClient();
   const [isPending, startTransition] = useTransition();
 
   const [reason, setReason] = useState<string>('');
@@ -64,56 +62,21 @@ export function CancelInvoiceModal({
 
     startTransition(async () => {
       try {
-        // Try RPC first
-        const { data, error: rpcErr } = await supabase.rpc('cancel_invoice', {
-          p_invoice_id: invoice.id,
-          p_reason: reason.trim(),
-          p_user_id: currentProfile.id,
-          p_user_name: currentProfile.full_name,
+        const res = await fetch('/api/invoices/cancel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            invoice_id: invoice.id,
+            reason: reason.trim(),
+          }),
         });
 
-        if (rpcErr) {
-          // Check for active payments error
-          if (rpcErr.message?.includes('active payments')) {
-            throw new Error('Reverse all active payments before cancelling this invoice.');
-          }
+        const json = await res.json().catch(() => ({}));
 
-          // Fallback direct handling if RPC is not available in local environment
-          const { count: activePayCount, error: payErr } = await supabase
-            .from('invoice_payments')
-            .select('*', { count: 'exact', head: true })
-            .eq('invoice_id', invoice.id)
-            .eq('is_reversed', false);
-
-          if (payErr) throw payErr;
-
-          if (activePayCount && activePayCount > 0) {
-            throw new Error('Reverse all active payments before cancelling this invoice.');
-          }
-
-          const { error: updateErr } = await supabase
-            .from('invoices')
-            .update({
-              status: 'Cancelled',
-              cancelled_at: new Date().toISOString(),
-              cancelled_by: currentProfile.id,
-              cancellation_reason: reason.trim(),
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', invoice.id);
-
-          if (updateErr) throw updateErr;
-
-          // Log activity
-          await supabase.from('invoice_activity_logs').insert({
-            invoice_id: invoice.id,
-            user_id: currentProfile.id,
-            user_name: currentProfile.full_name,
-            action: 'invoice_cancelled',
-            details: { reason: reason.trim() },
-          });
-        } else if (data && !data.success) {
-          throw new Error(data.message || 'Failed to cancel invoice.');
+        if (!res.ok || json.error) {
+          const errorMsg = extractErrorMessage(json);
+          onError(errorMsg);
+          return;
         }
 
         setReason('');
@@ -121,8 +84,8 @@ export function CancelInvoiceModal({
         onSuccess();
         onClose();
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Failed to cancel invoice.';
-        onError(msg);
+        const errorMsg = extractErrorMessage(err);
+        onError(errorMsg);
       }
     });
   };

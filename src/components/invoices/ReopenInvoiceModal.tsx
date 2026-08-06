@@ -2,8 +2,8 @@
 
 import React, { useState, useTransition } from 'react';
 import { RotateCcw, X, Loader2 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { Invoice, Profile } from '@/lib/types';
+import { extractErrorMessage } from '@/lib/utils';
 
 interface ReopenInvoiceModalProps {
   isOpen: boolean;
@@ -22,7 +22,6 @@ export function ReopenInvoiceModal({
   onSuccess,
   onError,
 }: ReopenInvoiceModalProps) {
-  const supabase = createClient();
   const [isPending, startTransition] = useTransition();
 
   const [reason, setReason] = useState<string>('');
@@ -52,46 +51,29 @@ export function ReopenInvoiceModal({
 
     startTransition(async () => {
       try {
-        const { data, error: rpcErr } = await supabase.rpc('reopen_invoice', {
-          p_invoice_id: invoice.id,
-          p_reason: reason.trim(),
-          p_user_id: currentProfile.id,
-          p_user_name: currentProfile.full_name,
+        const res = await fetch('/api/invoices/reopen', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            invoice_id: invoice.id,
+            reason: reason.trim(),
+          }),
         });
 
-        if (rpcErr) {
-          // Direct fallback if RPC function is not loaded
-          const { error: updateErr } = await supabase
-            .from('invoices')
-            .update({
-              status: 'Draft',
-              cancelled_at: null,
-              cancelled_by: null,
-              cancellation_reason: null,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', invoice.id);
+        const json = await res.json().catch(() => ({}));
 
-          if (updateErr) throw updateErr;
-
-          // Log activity
-          await supabase.from('invoice_activity_logs').insert({
-            invoice_id: invoice.id,
-            user_id: currentProfile.id,
-            user_name: currentProfile.full_name,
-            action: 'invoice_reopened',
-            details: { reason: reason.trim() },
-          });
-        } else if (data && !data.success) {
-          throw new Error(data.message || 'Failed to reopen invoice.');
+        if (!res.ok || json.error) {
+          const errorMsg = extractErrorMessage(json);
+          onError(errorMsg);
+          return;
         }
 
         setReason('');
         onSuccess();
         onClose();
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Failed to reopen invoice.';
-        onError(msg);
+        const errorMsg = extractErrorMessage(err);
+        onError(errorMsg);
       }
     });
   };
