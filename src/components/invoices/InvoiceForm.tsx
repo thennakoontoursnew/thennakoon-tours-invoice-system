@@ -15,8 +15,12 @@ import {
   Car,
   Calculator,
   CheckCircle2,
+  Ban,
+  RotateCcw,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { CancelInvoiceModal } from '@/components/invoices/CancelInvoiceModal';
+import { ReopenInvoiceModal } from '@/components/invoices/ReopenInvoiceModal';
 import {
   Invoice,
   InvoiceItem,
@@ -59,10 +63,15 @@ export function InvoiceForm({
   const [notification, setNotification] = useState<NotificationState | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [isReopenModalOpen, setIsReopenModalOpen] = useState(false);
+
   // User role permissions (normalized case-insensitive)
   const role = currentProfile?.role?.trim().toLowerCase();
+  const isOwner = role === 'owner';
   const isOwnerOrAdmin = role === 'owner' || role === 'admin';
   const isDraftOnly = role === 'staff' && initialInvoice && initialInvoice.status !== 'Draft';
+  const isCancelled = initialInvoice?.status === 'Cancelled';
 
   // Helper date function
   const getDefaultDueDate = useCallback((dueDays: number) => {
@@ -565,7 +574,31 @@ export function InvoiceForm({
             <span>Download</span>
           </button>
 
-          {!isDraftOnly && (
+          {/* Reopen Action (Owner Only for Cancelled Invoices) */}
+          {isCancelled && isOwner && (
+            <button
+              type="button"
+              onClick={() => setIsReopenModalOpen(true)}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition-all shadow-md active:scale-95 min-h-[44px]"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>Reopen Invoice</span>
+            </button>
+          )}
+
+          {/* Cancel Invoice Action (Owner/Admin for Active Non-Paid Invoices) */}
+          {!isCancelled && initialInvoice && status !== 'Paid' && isOwnerOrAdmin && (
+            <button
+              type="button"
+              onClick={() => setIsCancelModalOpen(true)}
+              className="flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-lg bg-red-950/80 hover:bg-red-900 text-red-300 text-xs font-semibold border border-red-800 transition-colors min-h-[44px]"
+            >
+              <Ban className="w-4 h-4 text-red-400" />
+              <span>Cancel Invoice</span>
+            </button>
+          )}
+
+          {!isCancelled && !isDraftOnly && (
             <>
               <button
                 type="button"
@@ -589,7 +622,7 @@ export function InvoiceForm({
             </>
           )}
 
-          {isDraftOnly && (
+          {!isCancelled && isDraftOnly && (
             <button
               type="button"
               disabled={isPending}
@@ -603,7 +636,24 @@ export function InvoiceForm({
         </div>
       </div>
 
-      {isDraftOnly && (
+      {isCancelled && (
+        <div className="p-5 rounded-xl bg-red-950/40 border border-red-800/60 text-red-300 text-xs space-y-2 shadow-lg">
+          <div className="flex items-center gap-2.5 text-red-400 font-bold text-sm">
+            <AlertCircle className="w-5 h-5" />
+            <span>INVOICE CANCELLED</span>
+          </div>
+          <p className="leading-relaxed">
+            This invoice was cancelled on <b>{initialInvoice?.cancelled_at ? new Date(initialInvoice.cancelled_at).toLocaleString() : 'N/A'}</b>. All editing and payment functions are locked.
+          </p>
+          {initialInvoice?.cancellation_reason && (
+            <p className="bg-zinc-950/60 p-2.5 rounded-lg border border-red-900/40 font-mono text-[11px] text-red-200">
+              Reason: {initialInvoice.cancellation_reason}
+            </p>
+          )}
+        </div>
+      )}
+
+      {isDraftOnly && !isCancelled && (
         <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-800/60 text-amber-300 text-xs flex items-center gap-3">
           <AlertCircle className="w-5 h-5 shrink-0" />
           <span>Staff members can edit Draft invoices only. Finalized invoices are locked for editing.</span>
@@ -1289,14 +1339,40 @@ export function InvoiceForm({
       />
 
       {initialInvoice && (
-        <AddPaymentModal
-          isOpen={isAddPaymentOpen}
-          onClose={() => setIsAddPaymentOpen(false)}
-          invoice={initialInvoice}
-          currentProfile={currentProfile}
-          onPaymentAdded={() => router.refresh()}
-          setNotification={setNotification}
-        />
+        <>
+          <AddPaymentModal
+            isOpen={isAddPaymentOpen}
+            onClose={() => setIsAddPaymentOpen(false)}
+            invoice={initialInvoice}
+            currentProfile={currentProfile}
+            onPaymentAdded={() => router.refresh()}
+            setNotification={setNotification}
+          />
+
+          <CancelInvoiceModal
+            isOpen={isCancelModalOpen}
+            onClose={() => setIsCancelModalOpen(false)}
+            invoice={initialInvoice}
+            currentProfile={currentProfile}
+            onSuccess={() => {
+              setNotification({ type: 'success', message: `Invoice ${initialInvoice.invoice_number} cancelled.` });
+              router.refresh();
+            }}
+            onError={(msg) => setNotification({ type: 'error', message: msg })}
+          />
+
+          <ReopenInvoiceModal
+            isOpen={isReopenModalOpen}
+            onClose={() => setIsReopenModalOpen(false)}
+            invoice={initialInvoice}
+            currentProfile={currentProfile}
+            onSuccess={() => {
+              setNotification({ type: 'success', message: `Invoice ${initialInvoice.invoice_number} reopened to Draft.` });
+              router.refresh();
+            }}
+            onError={(msg) => setNotification({ type: 'error', message: msg })}
+          />
+        </>
       )}
     </div>
   );

@@ -14,6 +14,7 @@ import {
   RotateCcw,
   Lock,
   DollarSign,
+  Ban,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Invoice, InvoiceStatus, Profile } from '@/lib/types';
@@ -22,6 +23,8 @@ import { downloadInvoicePdf } from '@/lib/pdf/generateInvoicePdf';
 import { PdfPreviewModal } from '@/components/pdf/PdfPreviewModal';
 import { Notification, NotificationState } from '@/components/ui/Notification';
 import { AddPaymentModal } from '@/components/payments/AddPaymentModal';
+import { CancelInvoiceModal } from '@/components/invoices/CancelInvoiceModal';
+import { ReopenInvoiceModal } from '@/components/invoices/ReopenInvoiceModal';
 
 interface InvoicesClientProps {
   initialInvoices: Invoice[];
@@ -45,6 +48,8 @@ export function InvoicesClient({
 
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [selectedPaymentInvoice, setSelectedPaymentInvoice] = useState<Invoice | null>(null);
+  const [selectedCancelInvoice, setSelectedCancelInvoice] = useState<Invoice | null>(null);
+  const [selectedReopenInvoice, setSelectedReopenInvoice] = useState<Invoice | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [notification, setNotification] = useState<NotificationState | null>(null);
 
@@ -457,6 +462,28 @@ export function InvoicesClient({
                             </span>
                           )}
 
+                          {/* Cancel Action (Owner/Admin for active non-Paid non-Cancelled invoices) */}
+                          {isOwnerOrAdmin && inv.status !== 'Cancelled' && inv.status !== 'Paid' && (
+                            <button
+                              onClick={() => setSelectedCancelInvoice(inv)}
+                              title="Cancel Invoice"
+                              className="p-2 rounded-md hover:bg-red-950/60 text-red-400 hover:text-red-300 transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
+                            >
+                              <Ban className="w-4 h-4" />
+                            </button>
+                          )}
+
+                          {/* Reopen Action (Owner Only for Cancelled Invoices) */}
+                          {role === 'owner' && inv.status === 'Cancelled' && (
+                            <button
+                              onClick={() => setSelectedReopenInvoice(inv)}
+                              title="Reopen Cancelled Invoice"
+                              className="p-2 rounded-md hover:bg-amber-950/60 text-amber-400 hover:text-amber-300 transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
+                            >
+                              <RotateCcw className="w-4 h-4" />
+                            </button>
+                          )}
+
                           {isOwnerOrAdmin && (
                             <button
                               onClick={() =>
@@ -589,6 +616,28 @@ export function InvoicesClient({
                     <Copy className="w-4 h-4" />
                   </button>
 
+                  {/* Cancel Action (Owner/Admin) */}
+                  {isOwnerOrAdmin && inv.status !== 'Cancelled' && inv.status !== 'Paid' && (
+                    <button
+                      onClick={() => setSelectedCancelInvoice(inv)}
+                      className="p-2.5 rounded-lg bg-red-950/60 text-red-400 hover:bg-red-900 min-h-[44px] min-w-[44px] flex items-center justify-center border border-red-900/40"
+                      title="Cancel Invoice"
+                    >
+                      <Ban className="w-4 h-4" />
+                    </button>
+                  )}
+
+                  {/* Reopen Action (Owner Only) */}
+                  {role === 'owner' && inv.status === 'Cancelled' && (
+                    <button
+                      onClick={() => setSelectedReopenInvoice(inv)}
+                      className="p-2.5 rounded-lg bg-amber-950/60 text-amber-400 hover:bg-amber-900 min-h-[44px] min-w-[44px] flex items-center justify-center border border-amber-900/40"
+                      title="Reopen Invoice"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                    </button>
+                  )}
+
                   {canEdit ? (
                     <Link
                       href={`/invoices/${inv.id}`}
@@ -623,6 +672,30 @@ export function InvoicesClient({
         currentProfile={currentProfile}
         onPaymentAdded={() => router.refresh()}
         setNotification={(notif) => setNotification(notif)}
+      />
+
+      <CancelInvoiceModal
+        isOpen={!!selectedCancelInvoice}
+        onClose={() => setSelectedCancelInvoice(null)}
+        invoice={selectedCancelInvoice}
+        currentProfile={currentProfile}
+        onSuccess={() => {
+          setNotification({ type: 'success', message: 'Invoice cancelled successfully.' });
+          router.refresh();
+        }}
+        onError={(msg) => setNotification({ type: 'error', message: msg })}
+      />
+
+      <ReopenInvoiceModal
+        isOpen={!!selectedReopenInvoice}
+        onClose={() => setSelectedReopenInvoice(null)}
+        invoice={selectedReopenInvoice}
+        currentProfile={currentProfile}
+        onSuccess={() => {
+          setNotification({ type: 'success', message: 'Invoice reopened to Draft successfully.' });
+          router.refresh();
+        }}
+        onError={(msg) => setNotification({ type: 'error', message: msg })}
       />
     </div>
   );

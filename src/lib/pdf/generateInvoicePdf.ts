@@ -101,6 +101,13 @@ export async function createInvoicePdfDoc(invoice: Invoice): Promise<jsPDF> {
   doc.setTextColor(70, 70, 70);
   doc.text(`Invoice Date: ${formatDate(invoice.invoice_date)}`, headerX, currentY + 6);
 
+  if (invoice.status === 'Cancelled') {
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(220, 38, 38);
+    doc.text('STATUS: CANCELLED', headerX + 55, currentY + 6);
+  }
+
   // Right: INVOICE NO: + TT-IN-10001 (No Status)
   doc.setFontSize(8.5);
   doc.setFont('helvetica', 'bold');

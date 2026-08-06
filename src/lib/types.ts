@@ -144,6 +144,11 @@ export interface Invoice {
   created_at: string;
   updated_at: string;
   archived_at?: string | null;
+
+  cancelled_at?: string | null;
+  cancelled_by?: string | null;
+  cancellation_reason?: string | null;
+  canceller?: Profile | null;
 }
 
 export interface CompanySettings {
